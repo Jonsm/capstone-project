@@ -11,15 +11,28 @@ public class MusicReader : MonoBehaviour {
 
 	public AudioClip song;
 	public AudioSource source;
+	public double percent;
 
-	private AudioClip mostCommonNote;
+	private float [] samples;
+	private double [] samples_RE;
+	private double [] samples_IM;
+	private int sampleSize;
+
+
+	private bool wait = false;
 
 	void Start () {
 		source.clip = song;
 		source.Play ();
+		if (playBeat) {
+			fudgeFactor = 1;
+		}
 
-		if (playNote) {
-			StartCoroutine (SetNote (mostCommonNote, song, source));
+		StartCoroutine(SongMakeFF ());
+		if (playBeat) {
+			StartCoroutine(LowPassFilter(song, source));
+		}else if (playNote) {
+			StartCoroutine (SetNote (song, source));
 		} else if (debug) {
 			StartCoroutine (FFTDebug());
 		}
@@ -51,24 +64,63 @@ public class MusicReader : MonoBehaviour {
 		yield return null;
 	}
 
-	/* plays the loudest frequency in the song */
-	IEnumerator SetNote (AudioClip output, AudioClip input, AudioSource source) {
-		//Initializing songs
-		float [] samples = new float [song.samples * song.channels];
-		input.GetData (samples, 0);
-		output = Instantiate (song) as AudioClip;
-		float FFTsampleRate = AudioSettings.outputSampleRate;
-		float sampleRate = song.frequency;
+	IEnumerator LowPassFilter( AudioClip input, AudioSource source){
+		while(!wait) yield return new WaitForSeconds(.01f);
+		AudioClip output = Instantiate (song) as AudioClip;
+		//calculates total power for the song
+		float total_pow = 0;
+		float power_remove = 0;
+		double [] copy_RE = new double[samples_RE.Length];
+		double [] copy_IM = new double[samples_IM.Length];
 
-		//Initializing fast fourier transform
-		double [] samples_RE = new double [samples.Length / fudgeFactor];
-		double [] samples_IM = new double [samples.Length / fudgeFactor];
-		int size = MakeFF (fudgeFactor, samples, samples_RE, samples_IM);
+	
+		for (int i = 0; i < sampleSize / 2; i++) {
+			copy_RE[i] = samples_RE[i];
+			copy_IM[i] = samples_IM[i];
+			total_pow += Mathf.Pow ((float) samples_RE [i], 2) + Mathf.Pow ((float) samples_IM [i], 2);
+		}
+		Debug.Log ("HERE");
+
+		int j = sampleSize/2 - 1;
+		while(power_remove < total_pow*percent){
+			power_remove += Mathf.Pow ((float) copy_RE [j], 2) + Mathf.Pow ((float) copy_IM [j], 2);
+			copy_RE[j] = 0;
+			copy_IM[j] = 0;
+			copy_RE[copy_RE.Length - j] = 0;
+			copy_IM[copy_IM.Length - j] = 0;
+			j--;
+		}
+		Debug.Log ("HERE TWO");
+
+		FFT fft = ScriptableObject.CreateInstance (typeof(FFT)) as FFT;
+		fft.init ((uint) Mathf.Log (copy_RE.Length, 2));
+		fft.run (copy_RE, copy_IM, true);
+		float [] new_samples = new float[copy_RE.Length];
+
+		for (int i = 0; i < copy_RE.Length; i++) {
+			new_samples[i] = (float)copy_RE[i];
+		}
+
+		output.SetData (new_samples, 0);
+
+		source.Stop ();
+		source.clip = output;
+		source.Play ();
+	
+		yield return null;
+	}
+
+
+	/* plays the loudest frequency in the song */
+	IEnumerator SetNote (AudioClip input, AudioSource source) {
+		while (!wait) yield return new WaitForSeconds(.01f);
+		AudioClip output = Instantiate (song) as AudioClip;
+		float sampleRate = input.frequency;
 
 		//Finding max bin
 		float max_pow = 0;
 		float max = 0;
-		for (int i = 0; i < size / 2; i++) {
+		for (int i = 0; i < sampleSize / 2; i++) {
 			float pow = Mathf.Pow ((float) samples_RE [i], 2) + Mathf.Pow ((float) samples_IM [i], 2);
 			if (pow > max_pow) {
 				max_pow = pow;
@@ -76,7 +128,7 @@ public class MusicReader : MonoBehaviour {
 			}
 		}
 		//Convert to frequency in Hz
-		max = max / (input.length * (float) size / (float) samples_RE.Length);
+		max = max / (input.length * (float) sampleSize / (float) samples_RE.Length);
 		Debug.Log (max);
 
 		//Create waveform
@@ -104,5 +156,19 @@ public class MusicReader : MonoBehaviour {
 		size = (int) Mathf.Log (size, 2);
 		size = (int) Mathf.Pow (2, size);
 		return size;
+	}
+
+	IEnumerator SongMakeFF(){
+		//Initializing songs
+		samples = new float [song.samples * song.channels];
+		song.GetData (samples, 0);		
+		//Initializing fast fourier transform
+		samples_RE = new double [samples.Length / fudgeFactor];
+		samples_IM = new double [samples.Length / fudgeFactor];
+		Debug.Log ("HEREdfl;dads;lgk");
+		sampleSize = MakeFF (fudgeFactor, samples, samples_RE, samples_IM);
+		wait = true;
+		yield return null;
+
 	}
 }
