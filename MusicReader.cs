@@ -7,6 +7,7 @@ public class MusicReader : MonoBehaviour {
 	public int fudgeFactor; //how much to reduce audio resolution for FFT
 	public bool playNote; //whether to play characteristic frequency
 	public bool playBeat; //whether to play beat patterns
+	public bool debug;
 
 	public AudioClip song;
 	public AudioSource source;
@@ -19,9 +20,35 @@ public class MusicReader : MonoBehaviour {
 
 		if (playNote) {
 			StartCoroutine (SetNote (mostCommonNote, song, source));
-		} else {
-
+		} else if (debug) {
+			StartCoroutine (FFTDebug());
 		}
+	}
+
+	/* get rid of this later -- for debuggin makeFF */
+	IEnumerator FFTDebug () {
+		int len = 512;
+		int freq = 21;
+		float [] samples = new float [len];
+		for (int i = 0; i < samples.Length; i++) {
+			samples [i] = Mathf.Sin ((float) freq * 2f * Mathf.PI * (float) i / (float) len);
+		}
+		double [] samples_RE = new double [samples.Length];
+		double [] samples_IM = new double [samples.Length];
+		MakeFF (1, samples, samples_RE, samples_IM);
+	
+		float maxPow = 0;
+		int max = 0;
+		for (int i = 1; i < samples_RE.Length; i++) {
+			float pow = Mathf.Pow ((float) samples_RE [i], 2) + Mathf.Pow ((float) samples_IM [i], 2);
+			if (pow > maxPow) {
+				maxPow = pow;
+				max = i;
+			}
+		}
+		Debug.Log (max);
+
+		yield return null;
 	}
 
 	/* plays the loudest frequency in the song */
@@ -30,24 +57,27 @@ public class MusicReader : MonoBehaviour {
 		float [] samples = new float [song.samples * song.channels];
 		input.GetData (samples, 0);
 		output = Instantiate (song) as AudioClip;
-		float FFTsampleRate = song.frequency / fudgeFactor;
+		float FFTsampleRate = AudioSettings.outputSampleRate;
 		float sampleRate = song.frequency;
 
 		//Initializing fast fourier transform
-		FFT fft = ScriptableObject.CreateInstance (typeof(FFT)) as FFT;
-		fft.init ((uint) Mathf.Log (samples.Length / fudgeFactor, 2));
 		double [] samples_RE = new double [samples.Length / fudgeFactor];
 		double [] samples_IM = new double [samples.Length / fudgeFactor];
-		for (int i = 0; i < samples.Length; i+=fudgeFactor) samples_RE [i/4] = (double) samples [i];
-		fft.run (samples_RE, samples_IM, false);
+		int size = MakeFF (fudgeFactor, samples, samples_RE, samples_IM);
 
-		//Finding max frequency
+		//Finding max bin
+		float max_pow = 0;
 		float max = 0;
-		for (int i = 0; i < samples_RE.Length / 2; i++) {
+		for (int i = 0; i < size / 2; i++) {
 			float pow = Mathf.Pow ((float) samples_RE [i], 2) + Mathf.Pow ((float) samples_IM [i], 2);
-			if (pow > max) max = i;
+			if (pow > max_pow) {
+				max_pow = pow;
+				max = i;
+			}
 		}
-		max = max * fudgeFactor / FFTsampleRate;
+		//Convert to frequency in Hz
+		max = max / (input.length * (float) size / (float) samples_RE.Length);
+		Debug.Log (max);
 
 		//Create waveform
 		for (int i = 0; i < samples.Length; i++) 
@@ -60,5 +90,19 @@ public class MusicReader : MonoBehaviour {
 
 		Debug.Log ("done");
 		yield return null;
+	}
+
+	//Generates the fourier transform samples_RE and samples_IM, and returns number of elements.
+	//Number of elements in output is different than input because FFT only works on array sizes 2^n.
+	int MakeFF (int factor, float [] samples, double [] samples_RE, double [] samples_IM) {
+		FFT fft = ScriptableObject.CreateInstance (typeof(FFT)) as FFT;
+		fft.init ((uint) Mathf.Log (samples_RE.Length, 2));
+		for (int i = 0; i < samples_RE.Length; i++) samples_RE [i] = (double) samples [i * factor];
+		fft.run (samples_RE, samples_IM, false);
+
+		int size = samples.Length / factor;
+		size = (int) Mathf.Log (size, 2);
+		size = (int) Mathf.Pow (2, size);
+		return size;
 	}
 }
