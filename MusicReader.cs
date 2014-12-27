@@ -24,14 +24,11 @@ public class MusicReader : MonoBehaviour {
 	void Start () {
 		source.clip = song;
 		source.Play ();
-		if (playBeat) {
-			fudgeFactor = 1;
-		}
 
 		StartCoroutine(SongMakeFF ());
 		if (playBeat) {
 			StartCoroutine(LowPassFilter(song, source));
-		}else if (playNote) {
+		} else if (playNote) {
 			StartCoroutine (SetNote (song, source));
 		} else if (debug) {
 			StartCoroutine (FFTDebug());
@@ -64,49 +61,50 @@ public class MusicReader : MonoBehaviour {
 		yield return null;
 	}
 
-	IEnumerator LowPassFilter( AudioClip input, AudioSource source){
-		while(!wait) yield return new WaitForSeconds(.01f);
+	IEnumerator LowPassFilter (AudioClip input, AudioSource source) {
+		while (!wait) yield return new WaitForSeconds(.01f);
 		AudioClip output = Instantiate (song) as AudioClip;
 		//calculates total power for the song
 		float total_pow = 0;
 		float power_remove = 0;
-		double [] copy_RE = new double[samples_RE.Length];
-		double [] copy_IM = new double[samples_IM.Length];
+		double [] copy_RE = new double [samples_RE.Length];
+		double [] copy_IM = new double [samples_IM.Length];
+		Debug.Log ("HERE 1");
 
-	
 		for (int i = 0; i < sampleSize / 2; i++) {
-			copy_RE[i] = samples_RE[i];
-			copy_IM[i] = samples_IM[i];
+			copy_RE [i] = samples_RE [i];
+			copy_IM [i] = samples_IM [i];
+			copy_RE [sampleSize - i - 1] = samples_RE [sampleSize - i - 1];
+			copy_IM [sampleSize - i - 1] = samples_IM [sampleSize - i - 1];
 			total_pow += Mathf.Pow ((float) samples_RE [i], 2) + Mathf.Pow ((float) samples_IM [i], 2);
 		}
-		Debug.Log ("HERE");
+		Debug.Log ("HERE 2");
 
 		int j = sampleSize/2 - 1;
-		while(power_remove < total_pow*percent){
+		while(power_remove <= percent * total_pow){
 			power_remove += Mathf.Pow ((float) copy_RE [j], 2) + Mathf.Pow ((float) copy_IM [j], 2);
-			copy_RE[j] = 0;
-			copy_IM[j] = 0;
-			copy_RE[copy_RE.Length - j] = 0;
-			copy_IM[copy_IM.Length - j] = 0;
+			copy_RE [j] = 0;
+			copy_IM [j] = 0;
+			copy_RE [sampleSize - j] = 0;
+			copy_IM [sampleSize - j] = 0;
 			j--;
 		}
-		Debug.Log ("HERE TWO");
+		Debug.Log ("HERE 3");
 
 		FFT fft = ScriptableObject.CreateInstance (typeof(FFT)) as FFT;
 		fft.init ((uint) Mathf.Log (copy_RE.Length, 2));
 		fft.run (copy_RE, copy_IM, true);
-		float [] new_samples = new float[copy_RE.Length];
+		//float [] new_samples = new float [song.samples * song.channels];
 
-		for (int i = 0; i < copy_RE.Length; i++) {
-			new_samples[i] = (float)copy_RE[i];
-		}
+		smoothArray (copy_RE, samples, fudgeFactor);
+		Debug.Log ("HERE 4");
 
-		output.SetData (new_samples, 0);
+		output.SetData (samples, 0);
 
 		source.Stop ();
 		source.clip = output;
 		source.Play ();
-	
+
 		yield return null;
 	}
 
@@ -129,7 +127,7 @@ public class MusicReader : MonoBehaviour {
 		}
 		//Convert to frequency in Hz
 		max = max / (input.length * (float) sampleSize / (float) samples_RE.Length);
-		Debug.Log (max);
+		Debug.Log ("MAX " + max);
 
 		//Create waveform
 		for (int i = 0; i < samples.Length; i++) 
@@ -140,7 +138,6 @@ public class MusicReader : MonoBehaviour {
 		source.clip = output;
 		source.Play ();
 
-		Debug.Log ("done");
 		yield return null;
 	}
 
@@ -158,17 +155,31 @@ public class MusicReader : MonoBehaviour {
 		return size;
 	}
 
-	IEnumerator SongMakeFF(){
+	//Applies the fourier transform for the global variable song
+	IEnumerator SongMakeFF (){
 		//Initializing songs
 		samples = new float [song.samples * song.channels];
 		song.GetData (samples, 0);		
 		//Initializing fast fourier transform
 		samples_RE = new double [samples.Length / fudgeFactor];
 		samples_IM = new double [samples.Length / fudgeFactor];
-		Debug.Log ("HEREdfl;dads;lgk");
 		sampleSize = MakeFF (fudgeFactor, samples, samples_RE, samples_IM);
 		wait = true;
-		yield return null;
 
+		yield return null;
+	}
+
+	//Maps the points of a smaller array to a larger one, linear- interpolating in between
+	void smoothArray (double [] small, float [] large, int factor) {
+		for (int i = 0; i < small.Length - 1; i++) {
+			float v_0 = (float) small [i]; //first value to interpolate
+			float v_1 = (float) small [i + 1]; //second value
+			int start_point = i * factor;
+			int end_point = (i + 1) * factor - 1;
+
+			for (int j = start_point; j < end_point; j++) {
+				large [j] = Mathf.Lerp (v_0, v_1, (float) j / ((float) end_point - (float) start_point));
+			}
+		}
 	}
 }
