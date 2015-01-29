@@ -5,6 +5,8 @@ using System.Collections.Generic;
 //Right now this is just a driver for the extrude class. Attach it to a cube or something.
 public class RoadMeshController : MonoBehaviour {
 	private int [] currentFaces;
+	public float amt;
+	public Vector3 mov;
 
 	// Use this for initialization
 	void Start () {
@@ -16,36 +18,49 @@ public class RoadMeshController : MonoBehaviour {
 		for (int i = 0; i < triangles.Length; i += 3) {
 			int vertsGreaterThanZero = 0;
 			for (int j = i; j < i + 3; j++) 
-				if (mesh.vertices [triangles [j]].y > 0) vertsGreaterThanZero++;
+				if (mesh.vertices [triangles [j]].y > amt) vertsGreaterThanZero++;
 
 			if (vertsGreaterThanZero == 3)
 				for (int j = i; j < i + 3; j++) trianglesList.Add (triangles [j]);
 		}
 		currentFaces = trianglesList.ToArray ();
 
-		Vector3 [] vals = new Vector3 [] {(Vector3.up) / 2};
-		Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeOffset, vals);
-		//TestSplitCylinder (mesh);
+		Vector3 [] vals = new Vector3 [] {mov};
+		Vector3 [] vals2 = new Vector3 [] {-1 * mov};
+		Vector3 [] resizeVals = new Vector3 [] {mov, new Vector3 (1.5f, 1.5f, 1.5f)};
+		Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (.2f, 0, 0)};
+		Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeResize, resizeVals);
+		//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeBevel, offsetVals);
+		//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeOffset, vals2);
+		//TestDrag (mesh, currentFaces);
+		//Debug.Log (GetUniquePoints (currentFaces));
+		//TestSplitCylinder (mesh, new List <int> (triangles));
 	}
 
-	//test function: drags one face out by two units
-	void TestDrag (Mesh mesh) {
+	//test function: drags one face out by one unit
+	void TestDrag (Mesh mesh, int [] triangles) {
 		Vector3 [] vertices = mesh.vertices;
-		for (int i = 0; i < vertices.Length; i++) {
-			if (vertices [i].x > 0) vertices [i].x += 2;
+		List <int> alreadyMoved = new List <int> ();
+		foreach (int i in triangles) {
+			if (!alreadyMoved.Contains (i)) {
+				vertices [i] += Vector3.left;
+				alreadyMoved.Add (i);
+			}
 		}
 		mesh.vertices = vertices; //need to do this for some reason
 		mesh.RecalculateBounds ();
 	}
 
 	//test out various cylinder meshes
-	void TestSplitCylinder (Mesh mesh) {
+	void TestSplitCylinder (Mesh mesh, List <int> triangles) {
 		Vector3 offset = .05f * Vector3.left;
 		Vector3 [] vertices = mesh.vertices;
 		Dictionary <Vector3, int> occurrences = new Dictionary <Vector3, int> ();
 		for (int i = 0; i < vertices.Length; i++) {
 			if (!occurrences.ContainsKey (vertices [i])) occurrences.Add (vertices [i], 1);
 			else {
+				Debug.Log (i);
+				if (!triangles.Contains (i)) continue;
 				occurrences [vertices [i]]++;
 				if (occurrences [vertices [i]] == 3) Debug.Log (3);
 				vertices [i] += occurrences [vertices [i]] * offset;
@@ -54,5 +69,18 @@ public class RoadMeshController : MonoBehaviour {
 
 		mesh.vertices = vertices;
 		mesh.RecalculateBounds ();
+	}
+
+	int GetUniquePoints (int [] triangles) {
+		List <int> added = new List <int> ();
+		int sum = 0;
+		foreach (int i in triangles) {
+			if (!added.Contains (i)) {
+				sum++;
+				added.Add (i);
+			}
+		}
+
+		return sum;
 	}
 }
