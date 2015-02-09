@@ -1,4 +1,8 @@
-﻿using UnityEngine;
+﻿/// <summary>
+/// DEPRECATED
+/// </summary>
+
+using UnityEngine;
 using System.Collections;
 
 [RequireComponent(typeof(AudioSource))]

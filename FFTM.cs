@@ -1,9 +1,4 @@
-﻿/// <summary>
-/// DEPRECATED
-/// </summary>
-
-
-using System;
+﻿using System;
 /*using System.Net;
 using System.Windows;
 using System.Windows.Controls;
@@ -14,6 +9,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;*/
 using UnityEngine;
+using System.Collections;
+using System.Threading;
 
 /**
 * Performs an in-place complex FFT.
@@ -40,7 +37,7 @@ using UnityEngine;
 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 * IN THE SOFTWARE.
 */
-public class FFT : ScriptableObject
+public class FFTM : ScriptableObject
 {
 	// Element for linked list in which we store the
 	// input/output data. We use a linked list because
@@ -52,26 +49,42 @@ public class FFT : ScriptableObject
 		public FFTElement next;     // Next element in linked list
 		public uint revTgt;         // Target position post bit-reversal
 	}
+	public bool working = false;
 	
 	private uint m_logN = 0;        // log2 of FFT size
 	private uint m_N = 0;           // FFT size
 	private FFTElement[] m_X;       // Vector of linked list elements
-	
+
+	private uint log;
+	private double [] realX;
+	private double [] imX;
+	private bool inv;
+
+	private static int instances = 0;
+	int myInstance;
+
 	/**
  *
  */
-	public FFT()
-	{
-	}
 	
 	/**
  * Initialize class to perform FFT of specified size.
  *
  * @param   logN    Log2 of FFT length. e.g. for 512 pt FFT, logN = 9.
  */
-	public void init(
-		uint logN )
-	{
+	public int GetInstance () {
+		return myInstance;
+	}
+
+	public void Init (uint logN) {
+		log = logN;
+		Thread t1 = new Thread (InitThread);
+		t1.Start ();
+	}
+
+	private void InitThread() {
+		lock (this) {
+		uint logN = log;
 		m_logN = logN;
 		m_N = (uint)(1 << (int)m_logN);
 		
@@ -87,6 +100,11 @@ public class FFT : ScriptableObject
 		// Specify target for bit reversal re-ordering.
 		for (uint k = 0; k < m_N; k++ )
 			m_X[k].revTgt = BitReverse(k,logN);
+		myInstance = instances;
+		instances++;
+
+		//Debug.Log ("done init " + myInstance);
+		}
 	}
 	
 	/**
@@ -96,11 +114,23 @@ public class FFT : ScriptableObject
  * @param   xIm     Imaginary part of input/output
  * @param   inverse If true, do an inverse FFT
  */
-	public void run(
-		double[] xRe,
-		double[] xIm,
-		bool inverse = false )
+	public void Run (double [] xRe, double[] xIm, bool inverse = false) {
+		working = true;
+		realX = xRe;
+		imX = xIm;
+		inv = inverse;
+
+		Thread t1 = new Thread (RunThread);
+		t1.Start ();
+	}
+
+	private void RunThread ()
 	{
+		lock (this) {
+		double[] xRe = realX;
+		double[] xIm = imX;
+		bool inverse = inv;
+		//Debug.Log ("starting run " + myInstance);
 		uint numFlies = m_N >> 1; // Number of butterflies per sub-FFT
 		uint span = m_N >> 1;     // Width of the butterfly
 		uint spacing = m_N;         // Distance between start of sub-FFTs
@@ -118,7 +148,7 @@ public class FFT : ScriptableObject
 			x = x.next;
 			k++;
 		}
-		
+
 		// For each stage of the FFT
 		for (uint stage = 0; stage < m_logN; stage++)
 		{
@@ -151,22 +181,22 @@ public class FFT : ScriptableObject
 					double xTopIm = xTop.im;
 					double xBotRe = xBot.re;
 					double xBotIm = xBot.im;
-					
+
 					// Top branch of butterfly has addition
 					xTop.re = xTopRe + xBotRe;
 					xTop.im = xTopIm + xBotIm;
-					
+
 					// Bottom branch of butterly has subtraction,
 					// followed by multiplication by twiddle factor
 					xBotRe = xTopRe - xBotRe;
 					xBotIm = xTopIm - xBotIm;
 					xBot.re = xBotRe*wRe - xBotIm*wIm;
 					xBot.im = xBotRe*wIm + xBotIm*wRe;
-					
+
 					// Advance butterfly to next top & bottom positions
 					xTop = xTop.next;
 					xBot = xBot.next;
-					
+
 					// Update the twiddle factor, via complex multiply
 					// by unit vector with the appropriate angle
 					// (wRe + j wIm) = (wRe + j wIm) x (wMulRe + j wMulIm)
@@ -193,6 +223,8 @@ public class FFT : ScriptableObject
 			xIm[target] = x.im;
 			x = x.next;
 		}
+		}
+		working = false;
 	}
 	
 	/**
