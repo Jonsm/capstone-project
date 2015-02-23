@@ -40,7 +40,7 @@ using UnityEngine;
 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 * IN THE SOFTWARE.
 */
-public class FFT : ScriptableObject
+public class FFT
 {
 	// Element for linked list in which we store the
 	// input/output data. We use a linked list because
