@@ -415,20 +415,91 @@ public class SpectrumAnalyzer {
 			}
 		}
 
-		//Debug.Log ("FDSAfdsa");
 		Debug.Log (time * (float)maxBeatLength / length);
-
-		//find average power for the max power beat
-		/*float avgPow = 0;
-		foreach (int i in maxBeats)
-			avgPow += (float) accessor (pos, i);
-		avgPow /= maxBeats.Count;*/
+		int range = maxBeatLength / 8;
+		List <int> newMaxBeats = new List <int> ();
+		foreach (int i in maxBeats) {
+			double maxPow = 0;
+			int maxJ = i - range;
+			for (int j = i - range; j < i + range; j++) {
+				if (accessor (pos, j) > maxPow) {
+					maxPow = accessor (pos, j);
+					maxJ = j;
+				}
+			}
+			newMaxBeats.Add (maxJ);
+		}
 
 		//add each beat time to array
 		foreach (int i in maxBeats) {
 			float currTime = (float) i * time / length;
 			float pow = (float) accessor (pos, i);
-			/*if (pow > avgPow * 0)*/ bandBeats [pos].Add (currTime, pow);
+			bandBeats [pos].Add (currTime, pow);
+		}
+	}
+
+	private void FindBeatsIII (object obj) {
+		int [] arr = (int[]) obj;
+		int pos = arr [0];
+		int length = bandSamples_RE [pos].Length * bandSamples_RE [pos][0].Length;
+
+		//params (might be promoted to global variables)
+		int pulseWindow = 32; //how large of a range around each potential beat to check
+		int beatIncrement = 4; //how much time to add to beat each iteration
+		int lookAhead = 2; //how many beats to look ahead for
+		float constrainMax = .125f; //how many seconds to look around beat for max value
+		int lookBehind = 4;
+
+		//convert bpm to discrete sample sizes
+		float maxBeatTime = (float) 60 / bpmRange [1];
+		float minBeatTime = (float) 60 / bpmRange [0];
+		int shortBeatLength = (int) (maxBeatTime * (float) length / time);
+		int longBeatLength = (int) (minBeatTime * (float) length / time);
+		int cmLength = (int) (constrainMax * (float) length / time);
+
+		//iterate through the array, looking at the next five points for each beat length
+		//between short and long. Find the one with maximum resonance. Then go to the next
+		//point.
+		int end = length - lookAhead * longBeatLength - pulseWindow / 2 - cmLength / 2;
+		int predictedBeat = lookBehind * longBeatLength + pulseWindow / 2 + cmLength / 2;
+		double max_pow = 0, pow = 0, sum = 0;
+		int sstart = 0, send = 0;
+		int max_length = 0;
+		while (predictedBeat < end) {
+			max_pow = 0;
+			int ssend = predictedBeat + cmLength / 2;
+			for (int i = predictedBeat - cmLength / 2; i < ssend; i++) {
+				if (accessor (pos, i) > max_pow) {
+					max_pow = accessor (pos, i);
+					predictedBeat = i;
+				}
+			}
+
+			max_pow = 0;
+			max_length = shortBeatLength;
+
+			for (int i = shortBeatLength; i < longBeatLength; i += beatIncrement) {
+				pow = 1;
+
+				for (int j = -1 * lookBehind; j < lookAhead; j++) {
+					sum = 0;
+					sstart = (predictedBeat + j * i) - pulseWindow / 2;
+					send = sstart + pulseWindow;
+					for (int k = sstart; k < send; k++) sum += accessor (pos, k);
+					pow *= (1 + sum);
+				}
+
+				if (pow > max_pow) {
+					max_pow = pow;
+					max_length = i;
+				}
+			}
+
+			float currTime = (float) predictedBeat * time / length;
+			float power = (float) accessor (pos, predictedBeat);
+			bandBeats [pos].Add (currTime, power);
+
+			predictedBeat += max_length;
 		}
 	}
 

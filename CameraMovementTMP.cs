@@ -4,8 +4,8 @@ using System.Collections;
 //wasd to move forward, backward, sideways, space to move up, shift to move down
 //mouse to look around
 public class CameraMovementTMP : MonoBehaviour {
-	private float forceMultiplier = 7;
-	private float dragForce = 4;
+	private float forceMultiplier = 65;
+	private float dragForce = 2;
 
 	void Start () {
 		gameObject.rigidbody.drag = dragForce;
