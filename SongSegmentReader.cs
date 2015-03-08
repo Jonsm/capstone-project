@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Segment {
 	public float time;
@@ -9,6 +10,7 @@ public class Segment {
 	public float [] playableLPF;
 	public double [] samples_RE;
 	public double [] samples_IM;
+	public List <float> beats;
 
 	private FFTM fftm;
 	private float charMin;
@@ -79,6 +81,41 @@ public class Segment {
 		InverseFF ();
 	}
 
+	//get specific beat times, put them into beats array
+	public void GetBeatTimes () {
+		int sampleLength = 4 * samples_RE.Length / (int) (bassRangeCutoff * time);
+		beats = new List <float> ();
+
+		//calculate standard deviation of power over samples
+		float avg = 0;
+		float sq_avg = 0;
+		List <float> local_avgs = new List <float> ();
+		for (int i = 0; i < samples_RE.Length; i += sampleLength) {
+			int end = Mathf.Min (i + sampleLength, samples_RE.Length);
+			float local_avg = 0;
+			for (int j = i; j < end; j++) local_avg += Power (j);
+
+			local_avg /= (end - i);
+			local_avgs.Add (local_avg);
+			avg += local_avg;
+			sq_avg += Mathf.Pow (local_avg, 2);
+		}
+		avg /= local_avgs.Count;
+		sq_avg /= local_avgs.Count;
+		float std_dev = Mathf.Sqrt (sq_avg - Mathf.Pow (avg, 2));
+		//Debug.Log ("AVG " + avg + " STD DEV " + std_dev);
+
+		//if sample's average power is greater than average + std dev, add beat's time
+		float localTime = 0;
+		float timeIncrement = time * (float) sampleLength / samples_RE.Length;
+		Debug.Log (local_avgs.Count * timeIncrement + " " + time);
+		foreach (float f in local_avgs) {
+			if (f > avg + std_dev) beats.Add (localTime);
+			localTime += timeIncrement;
+		}
+		//Debug.Log (beats.Count);
+	}
+
 	public void MakePlayableLPF () {
 		playableLPF = new float[samples_RE.Length * factor];
 		SongSegmentReader.SmoothArray (samples_RE, playableLPF, factor);
@@ -98,7 +135,10 @@ public class SongSegmentReader : MonoBehaviour {
 	public float charMin; //minimum frequency for characteristic pitch
 	public float charMax; //max frequency for characteristic pitch
 	public Segment [] segments;
-	
+
+	public GameObject indicator;
+	private float zeroTime = -1;
+
 	private int revisedSegmentLength; //power of 2
 
 	void Start () {
@@ -137,10 +177,13 @@ public class SongSegmentReader : MonoBehaviour {
 
 		foreach (Segment s in segments) {
 			while (s.IsWorking ()) yield return new WaitForSeconds (.01f);
+			s.GetBeatTimes ();
 			s.MakePlayableLPF ();
 		}
 
 		Debug.Log ("done");
+		StartCoroutine ("ShowBeats");
+		PlayLowPass ();
 		yield return null;
 	}
 
@@ -155,8 +198,31 @@ public class SongSegmentReader : MonoBehaviour {
 			total += segments [i].playableLPF.Length;
 		}
 		source.Stop ();
+		zeroTime = Time.time;
 		song.SetData (newSong, 0);
 		source.Play ();
+	}
+
+	//show indicator every time beat falls
+	private IEnumerator ShowBeats () {
+		indicator.SetActive (false);
+		while (zeroTime == -1) yield return new WaitForSeconds (.01f);
+
+		foreach (Segment s in segments) {
+			foreach (float f in s.beats) {
+				while (Time.time - zeroTime < f) yield return new WaitForSeconds (.01f);
+				StartCoroutine ("MakeVisible");
+			}
+			zeroTime += s.time;
+			//zeroTime = Time.time;
+		}
+		Debug.Log ("done with segments");
+	}
+
+	private IEnumerator MakeVisible () {
+		indicator.SetActive (true);
+		yield return new WaitForSeconds (.1f);
+		indicator.SetActive (false);
 	}
 
 	//Turns a smaller array into a larger one, interpolating all new points

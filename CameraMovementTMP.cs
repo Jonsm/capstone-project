@@ -4,14 +4,20 @@ using System.Collections;
 //wasd to move forward, backward, sideways, space to move up, shift to move down
 //mouse to look around
 public class CameraMovementTMP : MonoBehaviour {
-	private float forceMultiplier = 1000;
-	private float dragForce = 5;
+//<<<<<<< HEAD
+	//private float forceMultiplier = 1000;
+	//private float dragForce = 5;
+//=======
+	private float forceMultiplier = 65;
+	private float dragForce = 2;
+//>>>>>>> 70161d8350f414e905e14a00705a34c59f7c018e
 
 	void Start () {
-		gameObject.rigidbody.drag = dragForce;
+		Physics.gravity = new Vector3 (0, -10.0f, 0);
+		gameObject.GetComponent<Rigidbody>().drag = dragForce;
 	}
 
-	void Update () {
+	void LateUpdate () {
 		//compute forward, left, and right (relative to camera's rotation)
 		Vector3 forward = gameObject.transform.forward;
 		forward = new Vector3 (forward.x, 0, forward.z);
@@ -21,30 +27,30 @@ public class CameraMovementTMP : MonoBehaviour {
 
 		//forward backward
 		if (Input.GetKey ("w")) {
-			gameObject.rigidbody.AddForce (forceMultiplier * forward);
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * forward);
 		} else if (Input.GetKey ("s")) {
-			gameObject.rigidbody.AddForce (-1 * forceMultiplier * forward); 
+			gameObject.GetComponent<Rigidbody>().AddForce (-1 * forceMultiplier * forward); 
 		}
 
 		//left right
 		if (Input.GetKey ("a")) {
-			gameObject.rigidbody.AddForce (forceMultiplier * left);
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * left);
 		} else if (Input.GetKey ("d")) {
-			gameObject.rigidbody.AddForce (forceMultiplier * right);
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * right);
 		}
 
 		//up down
 		if (Input.GetKey ("space")) {
-			gameObject.rigidbody.AddForce (forceMultiplier * Vector3.up);
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * Vector3.up);
 		} else if (Input.GetKey (KeyCode.LeftShift)) {
-			gameObject.rigidbody.AddForce (forceMultiplier * Vector3.down);
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * Vector3.down);
 		}
 
 		//rotate view
 		Vector2 mp = Input.mousePosition;
 		float pitch = Mathf.Lerp (-89, 89, 1 - mp.y / Screen.height);
 		float yaw = Mathf.Lerp (-180, 180, ProperMod (mp.x, Screen.width) / Screen.width);
-		rigidbody.rotation = Quaternion.Euler (new Vector3 (pitch, yaw, 0));
+		GetComponent<Rigidbody>().rotation = Quaternion.Euler (new Vector3 (pitch, yaw, 0));
 	}
 
 	//returns a % b that works on negative numbers
