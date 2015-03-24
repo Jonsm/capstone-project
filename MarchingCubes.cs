@@ -12,19 +12,23 @@ public class MarchingCubes : MonoBehaviour {
 	public float cubeSize = .5f; //size of each cube
 	public delegate float func (Vector3 pos); //function used for isosurfaces
 	public float surface = 1; //cutoff value of isosurface
+	public bool smoothShade;
 
-	private int[][] range = {new int[] {-20,20}, new int[] {-5,10}, new int[] {-20,20}}; //limits of cubes in x,y,z
+	private int[][] range = {new int[] {-30,30}, new int[] {-10,15}, new int[] {-30,30}}; //limits of cubes in x,y,z
 	private func surfaceFunction;
 	private Dictionary <Vector3, float> isoValues = new Dictionary<Vector3, float> (); //value at each point
 	private List <int> triangles = new List <int> ();
 	private List <Vector3> vertices = new List <Vector3> ();
+	private Dictionary <Vector3, int> indices = new Dictionary<Vector3, int> (); //index of each vertex, to not repeat
 	private int currPos = 0;
 	private Generator g;
 
 	// Use this for initialization
 	void Start () {
 		Generator s = new ValueNoise(Random.Range (-9000, 9000), null); 
-		g =  new RidgeNoise(s);
+		//g =  new RidgeNoise(s);
+		g = new GradientNoise (Random.Range (-9000,9000));
+
 
 		surfaceFunction = TerrainPlane;
 		Mesh mesh = gameObject.GetComponent <MeshFilter> ().mesh;
@@ -37,6 +41,9 @@ public class MarchingCubes : MonoBehaviour {
 		mesh.RecalculateNormals ();
 		collide.sharedMesh = mesh;
 		print(collide.attachedRigidbody);
+		//AddCubes (new Vector3 (this.gameObject.transform.position.x + cubeSize*30,
+		 //                      this.gameObject.transform.position.y,
+		   //                    this.gameObject.transform.position.z ));
 		
 	}
 
@@ -60,6 +67,10 @@ public class MarchingCubes : MonoBehaviour {
 				}
 			}
 		}
+	}
+
+	void AddCubes(Vector3 pos){
+		Instantiate (this.gameObject, pos, Quaternion.identity);
 	}
 
 	//generates geometry for a single cube with lower, back, left corner at pos
@@ -93,9 +104,15 @@ public class MarchingCubes : MonoBehaviour {
 		//create the geometry
 		for (int i = 0; triTable [cubeIndex][i] != -1; i += 3) {
 			for (int j = 0; j < 3; j++) {
-				vertices.Add (cubeSize * vertList [triTable [cubeIndex][i + j]]);
-				triangles.Add (currPos);
-				currPos++;
+				Vector3 v = vertList [triTable [cubeIndex][i + j]];
+				if (!indices.ContainsKey (v) || !smoothShade) {
+					vertices.Add (cubeSize * v);
+					triangles.Add (currPos);
+					indices [v] = currPos;
+					currPos++;
+				} else {
+					triangles.Add (indices [v]);
+				}
 			}
 		}
 
@@ -135,8 +152,9 @@ public class MarchingCubes : MonoBehaviour {
 	}
 
 	float TerrainPlane (Vector3 pos) {
-		return pos.y + 5 * g.GetValue (pos.x / 8, pos.y / 8, pos.z / 8)
-			+ g.GetValue (pos.x / 3, pos.y / 3, pos.z / 3);
+		return .5f * pos.y + 5 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20)
+			+ g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7)
+			+ .5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5);
 	}
 
 	//big long lookup tables
@@ -430,4 +448,20 @@ public class MarchingCubes : MonoBehaviour {
 		new int[] {0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 		new int[] {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 		new int[] {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
+
+	/*void CustomNormals (Mesh mesh) {
+		Vector3 [] normals = new Vector3 [mesh.vertices.Length];
+		for (int i = 0; i < mesh.triangles.Length; i += 3) {
+			Vector3 ba = mesh.vertices [mesh.triangles [i + 1]] - mesh.vertices [mesh.triangles [i]];
+			Vector3 cb = mesh.vertices [mesh.triangles [i + 2]] - mesh.vertices [mesh.triangles [i + 1]];
+			Vector3 normal = Vector3.Cross (ba, cb).normalized;
+			
+			for (int j = 0; j < 3; j++) {
+				normals [mesh.triangles[i + j]] += normal;
+			}
+		}
+		
+		for (int i = 0; i < normals.Length; i++) normals [i] = normals [i].normalized;
+		mesh.normals = normals;
+	}*/
 }

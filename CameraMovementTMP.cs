@@ -10,6 +10,7 @@ public class CameraMovementTMP : MonoBehaviour {
 //=======
 	private float forceMultiplier = 65;
 	private float dragForce = 2;
+	private bool canJump = true;
 //>>>>>>> 70161d8350f414e905e14a00705a34c59f7c018e
 
 	void Start () {
@@ -44,6 +45,10 @@ public class CameraMovementTMP : MonoBehaviour {
 			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * Vector3.up);
 		} else if (Input.GetKey (KeyCode.LeftShift)) {
 			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * Vector3.down);
+		} else if (Input.GetKey("e") && canJump == true){
+
+			canJump = false;
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier *100* Vector3.up);
 		}
 
 		//rotate view
@@ -51,6 +56,10 @@ public class CameraMovementTMP : MonoBehaviour {
 		float pitch = Mathf.Lerp (-89, 89, 1 - mp.y / Screen.height);
 		float yaw = Mathf.Lerp (-180, 180, ProperMod (mp.x, Screen.width) / Screen.width);
 		GetComponent<Rigidbody>().rotation = Quaternion.Euler (new Vector3 (pitch, yaw, 0));
+	}
+
+	void OnCollisionEnter(Collision collision) {
+		canJump = true;
 	}
 
 	//returns a % b that works on negative numbers
