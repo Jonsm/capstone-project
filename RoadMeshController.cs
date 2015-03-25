@@ -28,8 +28,8 @@ public class RoadMeshController : MonoBehaviour {
 		//Vector3 [] vals = new Vector3 [] {mov};
 		//Vector3 [] vals2 = new Vector3 [] {-1 * mov};
 		Vector3 [] resizeVals = new Vector3 [] {mov, new Vector3 (1.5f, 1.5f, 1.5f)};
-		//Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (.2f, 0, 0)};
-		Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeResize, resizeVals);
+		Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (.2f, 0, 0)};
+		Extruder.Extrude (mesh, currentFaces, false, Extruder.ExtrudeBevel, offsetVals);
 		//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeBevel, offsetVals);
 		//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeOffset, vals2);
 		//TestDrag (mesh, currentFaces);

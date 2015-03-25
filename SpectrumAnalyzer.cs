@@ -353,6 +353,7 @@ public class SpectrumAnalyzer {
 	private void FindBeatsII (object obj) {
 		int [] arr = (int[]) obj;
 		int pos = arr [0];
+		//Debug.Log(pos + " " + bandSamples_RE [pos].Length);
 		int length = bandSamples_RE [pos].Length * bandSamples_RE [pos][0].Length;
 
 		//find the max value in the band
@@ -416,8 +417,8 @@ public class SpectrumAnalyzer {
 		}
 
 		Debug.Log (time * (float)maxBeatLength / length);
-		int range = maxBeatLength / 8;
-		List <int> newMaxBeats = new List <int> ();
+		//int range = maxBeatLength / 8;
+		/*List <int> newMaxBeats = new List <int> ();
 		foreach (int i in maxBeats) {
 			double maxPow = 0;
 			int maxJ = i - range;
@@ -428,7 +429,8 @@ public class SpectrumAnalyzer {
 				}
 			}
 			newMaxBeats.Add (maxJ);
-		}
+		}*/
+		//if (pos == 0) Debug.Log ("here");
 
 		//add each beat time to array
 		foreach (int i in maxBeats) {
@@ -436,6 +438,8 @@ public class SpectrumAnalyzer {
 			float pow = (float) accessor (pos, i);
 			bandBeats [pos].Add (currTime, pow);
 		}
+
+		//if (pos == 0) Debug.Log ("here" + maxBeats.Count);
 	}
 
 	private void FindBeatsIII (object obj) {
