@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using CoherentNoise;
 using CoherentNoise.Generation;
+using CoherentNoise.Generation.Fractal;
+using CoherentNoise.Generation.Combination;
+using CoherentNoise.Generation.Voronoi;
 
 //Algorithm credit to Paul Bourke
 public class MarchingCubes : MonoBehaviour {
@@ -22,16 +25,26 @@ public class MarchingCubes : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		Generator s = new ValueNoise(Random.Range (-9000, 9000), null); 
+		//g =  new RidgeNoise(s);
 		g = new GradientNoise (Random.Range (-9000,9000));
+
 
 		surfaceFunction = TerrainPlane;
 		Mesh mesh = gameObject.GetComponent <MeshFilter> ().mesh;
+		MeshCollider collide = gameObject.GetComponent<MeshCollider> ();
 		Generate ();
 
 		mesh.vertices = vertices.ToArray ();
 		mesh.triangles = triangles.ToArray ();
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();
+		collide.sharedMesh = mesh;
+		print(collide.attachedRigidbody);
+		//AddCubes (new Vector3 (this.gameObject.transform.position.x + cubeSize*30,
+		 //                      this.gameObject.transform.position.y,
+		   //                    this.gameObject.transform.position.z ));
+		
 	}
 
 	//runs over all of the cubes
@@ -54,6 +67,10 @@ public class MarchingCubes : MonoBehaviour {
 				}
 			}
 		}
+	}
+
+	void AddCubes(Vector3 pos){
+		Instantiate (this.gameObject, pos, Quaternion.identity);
 	}
 
 	//generates geometry for a single cube with lower, back, left corner at pos

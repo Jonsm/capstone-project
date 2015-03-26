@@ -60,6 +60,7 @@ public class Extruder : MonoBehaviour {
 				}
 				AddVertex (newVertices, ref vertIndex, vertices [i]);
 				addedVertices.Add (i, vertIndex - 1);
+				
 			}
 		}
 
@@ -70,7 +71,8 @@ public class Extruder : MonoBehaviour {
 		//make sure that curr, prev are going clockwise (so normals align)
 		IEnumerator enumerator = faceToSides.Keys.GetEnumerator ();
 		enumerator.MoveNext ();
-		prev = (int) enumerator.Current;
+
+		prev = (int)enumerator.Current;
 		curr = GetClockwiseEdge (mesh, prev, faces);
 
 		//loops around the edge, vertex by vertex, adding new geometry
@@ -348,5 +350,156 @@ public class Extruder : MonoBehaviour {
 		}
 
 		mesh.vertices = newVertices;
+	}
+
+	//Extrudes in an artistic way leaving gaps
+	public static void ExtrudeArt(List<int> toChange, Mesh mesh, Vector3 []vals){
+
+		List <int> alreadyExtruded = new List <int> ();
+		Vector3 [] vertices = mesh.vertices;
+		Vector3 center = Vector3.zero; //center of geometry
+		foreach (int i in toChange) center += vertices [i] / toChange.Count;
+		
+		foreach (int i in toChange) {
+			if (!alreadyExtruded.Contains (i)) {
+				//resize about center
+				Vector3 offset = vertices [i] - center;
+				offset.x = offset.x * vals [1].x - alreadyExtruded.Count;
+				offset.y = offset.y * vals [1].y - alreadyExtruded.Count;
+				offset.z = offset.z * vals [1].z - alreadyExtruded.Count;
+				
+				vertices [i] = center + offset;
+				vertices [i] += vals [0];
+				alreadyExtruded.Add (i);
+			}
+		}
+		
+		mesh.vertices = vertices;
+
+	}
+
+	//Extrudes in a way that makes monolith style buildings
+	public static void ExtrudeWeirdClean(List<int> toChange, Mesh mesh, Vector3 []vals){
+		
+			List <int> alreadyExtruded = new List <int> ();
+			Vector3 [] vertices = mesh.vertices;
+			Vector3 center = Vector3.zero; //center of geometry
+			foreach (int i in toChange)
+						center += vertices [i] / toChange.Count;
+				foreach (int i in toChange) {
+						if (!alreadyExtruded.Contains (i)) {
+								//resize about center
+								Vector3 offset = vertices [i] - center;
+								offset.x = offset.x * vals [1].x ;
+								offset.y =  vals [1].y - offset.y;
+								offset.z = offset.z * vals [1].z;
+				
+								vertices [i] = center + offset;
+								vertices [i] += vals [0];
+								alreadyExtruded.Add (i);
+						}
+				}
+		
+				mesh.vertices = vertices;
+	}
+	//Creates a shape full of holes
+	public static void ExtrudeSpike(List<int> toChange, Mesh mesh, Vector3 []vals){
+
+		List <int> alreadyExtruded = new List <int> ();
+		Vector3 count = vals[2];
+		int co = (int)count [0];
+		Vector3 [] vertices = mesh.vertices;
+		Vector3 center = Vector3.zero; //center of geometry
+		foreach (int i in toChange)
+			center += vertices [i] / toChange.Count;
+
+		foreach (int i in toChange) {
+			if (!alreadyExtruded.Contains (i)) {
+				co = co % (int)count[0];
+			
+				Vector3 offset = vertices [i];
+				offset.x *= vals [1].x + co;
+				offset.y *= vals [1].y + co;
+				offset.z *= vals [1].z + co;
+				
+				vertices [i] =  offset;
+			//	vertices [i] += vals [0];
+				alreadyExtruded.Add (i);
+				co++;
+			}
+		}
+		
+		mesh.vertices = vertices;
+	}
+
+	//Does a pyramid in the y direction also good for spikes wash monuments and spiked pillars (minuret?)
+	public static void ExtrudePyramid(List<int> toChange, Mesh mesh, Vector3 []vals){	
+	
+		List <int> alreadyExtruded = new List <int> ();
+		Vector3 [] vertices = mesh.vertices;
+		Vector3 center = Vector3.zero;
+		foreach (int i in toChange) {
+			if (!alreadyExtruded.Contains (i)) {
+
+				Vector3 offset = vertices[i];
+				offset.x = vals[1].x - center.x;
+				offset.y = vals[1].y - center.y;
+				offset.z = vals[1].z - center.z;
+
+				vertices[i] = offset;
+				vertices [i] += vals [0];
+				alreadyExtruded.Add(i);
+
+			}
+		}
+		mesh.vertices = vertices;
+
+	}
+	//Does an inverse period sorta thing in the y direction (FLIP THE CUBE 
+	public static void ExtrudeInversePyramid(List<int> toChange, Mesh mesh, Vector3 []vals){	
+		
+		List <int> alreadyExtruded = new List <int> ();
+		Vector3 [] vertices = mesh.vertices;
+		Vector3 center = Vector3.zero;
+		foreach (int i in toChange) {
+			if (!alreadyExtruded.Contains (i)) {
+				
+				Vector3 offset = vertices[i];
+				offset.x = vals[1].x + center.x;
+				offset.y = vals[1].y + center.y;
+				offset.z = vals[1].z + center.z;
+				
+				vertices[i] = offset;
+				vertices [i] += vals [0];
+				alreadyExtruded.Add(i);
+				
+			}
+		}
+		mesh.vertices = vertices;
+		
+	}
+
+	//Extrudes a dome Shape
+	public static void ExtrudeDome(List<int> toChange, Mesh mesh, Vector3 [] vals){
+
+		List <int> alreadyExtruded = new List <int> ();
+		Vector3 [] vertices = mesh.vertices;
+		Vector3 center = Vector3.zero;
+
+		foreach (int i in toChange) {
+			if (!alreadyExtruded.Contains (i)) {
+				
+				Vector3 offset = vertices[i];
+				offset.x = vals[1].x;
+				offset.y =  Mathf.Sqrt( 10 - (vertices[i].x * vertices[i].x) - (vertices[i].z *vertices[i].z));
+				offset.z = vals[1].z;
+				
+				vertices[i] = offset;
+				vertices [i] += vals [0];
+				alreadyExtruded.Add(i);
+				
+			}
+		}
+		mesh.vertices = vertices;
 	}
 }
