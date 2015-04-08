@@ -3,13 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Extruder : MonoBehaviour {
-	//event type for custom extrude function. toChange is the list to pull, vertices is the mesh's vertices,
-	//vals is an array of special parameters (i.e. size, offset, etc.), recalculate is whether to recalculate
-	//bounds and normals afterward. Don't do it if you are doing multiple extrudes in a row, as it takes a while.
+	//event type for custom extrude function. 
 	public delegate void ExtrudeType (List <int> toChange, Mesh mesh, Vector3 [] vals);
 
 	//Extrudes a face (triangles) in the direction offset
-	public static void Extrude (Mesh mesh, int [] faces, bool hardEdge, ExtrudeType ex, 
+	//toChange is the list to pull, vertices is the mesh's vertices,
+	//vals is an array of special parameters (i.e. size, offset, etc.), recalculate is whether to recalculate
+	//bounds and normals afterward. Don't do it if you are doing multiple extrudes in a row, as it takes a while.
+	public static List <int> Extrude (Mesh mesh, int [] faces, bool hardEdge, ExtrudeType ex, 
 	                            Vector3 [] vals, bool recalculate = true) {
 		Vector3 [] vertices = mesh.vertices;
 		int [] triangles = mesh.triangles;
@@ -140,6 +141,12 @@ public class Extruder : MonoBehaviour {
 			mesh.RecalculateBounds ();
 			mesh.RecalculateNormals ();
 		}
+
+		//return all new vertices on the side
+		List <int> sideVerts = new List <int> ();
+		sideVerts.AddRange (addedVertices.Values);
+		if (hardEdge) sideVerts.AddRange (copies.Values);
+		return sideVerts; 
 	}
 
 	//Returns true if vertices at indices a and b are connected
@@ -183,7 +190,6 @@ public class Extruder : MonoBehaviour {
 	//adds a vertex to the end of vertices array, increments pos
 	private static void AddVertex (Vector3 [] vertices, ref int pos, Vector3 vertex) {
 		vertices [pos] = vertex;
-		//if (visited != null) visited.Add (pos);
 		pos++;
 	}
 
