@@ -14,6 +14,30 @@ public class Extruder : MonoBehaviour {
 	                            Vector3 [] vals, bool recalculate = true) {
 		Vector3 [] vertices = mesh.vertices;
 		int [] triangles = mesh.triangles;
+
+		//dictionary for fast lookup of where vertices are
+		Dictionary <Vector3, List <int>> verticesLookup = new Dictionary<Vector3, List <int>> ();
+		for (int i = 0; i < vertices.Length; i++) {
+			if (!verticesLookup.ContainsKey (vertices [i])) 
+				verticesLookup [vertices [i]] = new List <int> ();
+			verticesLookup [vertices [i]].Add (i);
+		}
+
+		//dictionary for fast lookup of which vertices are connected to each other
+		Dictionary <int, List <int>> triConnections = new Dictionary <int, List <int>> ();
+		for (int i = 0; i < triangles.Length; i += 3) {
+			if (!triConnections.ContainsKey (triangles [i])) triConnections [triangles [i]] = new List <int> ();
+			triConnections [triangles [i]].Add (triangles [i + 1]);
+			triConnections [triangles [i]].Add (triangles [i + 2]);
+
+			if (!triConnections.ContainsKey (triangles [i + 1])) triConnections [triangles [i + 1]] = new List <int> ();
+			triConnections [triangles [i + 1]].Add (triangles [i]);
+			triConnections [triangles [i + 1]].Add (triangles [i + 2]);
+
+			if (!triConnections.ContainsKey (triangles [i + 2])) triConnections [triangles [i + 2]] = new List <int> ();
+			triConnections [triangles [i + 2]].Add (triangles [i]);
+			triConnections [triangles [i + 2]].Add (triangles [i + 1]);
+		}
 		
 		//key = face vertices, value = edge vertices with same coords
 		Dictionary <int, List <int>> faceToSides = new Dictionary<int, List<int>> ();
@@ -24,8 +48,9 @@ public class Extruder : MonoBehaviour {
 			if (occurrences <= 2 && !faceToSides.ContainsKey (i)) {
 				faceToSides.Add (i, new List <int> ()) ;
 
-				for (int j = 0; j < vertices.Length; j++) {
-					if (vertices [j] == vertices [i] && j != i) faceToSides [i].Add (j);
+				for (int j = 0; j < verticesLookup [vertices [i]].Count; j++) {
+					int k = verticesLookup [vertices [i]] [j];
+					if (k != i) faceToSides [i].Add (k);
 				}
 			}
 		}
@@ -86,7 +111,7 @@ public class Extruder : MonoBehaviour {
 
 			foreach (int i in faceToSides [curr]) {
 				foreach (int j in faceToSides [prev]) {
-					if (AreConnected (mesh, i, j)) {
+					if (AreConnected (triConnections, i, j)) {
 						s1 = i;
 						s2 = j;
 					}
@@ -149,17 +174,9 @@ public class Extruder : MonoBehaviour {
 		return sideVerts; 
 	}
 
-	//Returns true if vertices at indices a and b are connected
-	private static bool AreConnected (Mesh mesh, int a, int b) {
-		if (a == b) return false;
-		for (int i = 0; i < mesh.triangles.Length; i += 3) {
-			int matches = 0;
-			for (int j = i; j < i + 3; j++) {
-				if (mesh.triangles [j] == a || mesh.triangles [j] == b) matches++;
-			}
-			if (matches == 2) return true;
-		}
-		return false;
+	//Returns true if vertices with lookups in connections are connected
+	private static bool AreConnected (Dictionary <int, List <int>> connections, int a, int b) {
+		return connections [a].Contains (b);
 	}
 
 	//takes a point on the edge of a group of triangles, returns the next 
