@@ -14,6 +14,7 @@ public class TreeGenerator : MonoBehaviour {
 	public float [] branchDeviation; //amount branch-trunk angle will deviate from 90
 	public GameObject branch;
 	public Mesh mfMesh;
+	public List <Vector3> tips = new List<Vector3> ();
 
 	private Octree collisionTree;
 	private Mesh mesh;
@@ -158,6 +159,7 @@ public class TreeGenerator : MonoBehaviour {
 		tg.mfMesh = mfMesh;
 		tg.branchDeviation = ApplyIncrements (branchDeviation);
 		tg.collisionTree = collisionTree;
+		tg.tips = tips;
 
 		tg.Init ();
 		tg.Grow ();
@@ -236,6 +238,8 @@ public class TreeGenerator : MonoBehaviour {
 
 		mesh.vertices = newVertices;
 		mesh.triangles = newTriangles;
+
+		tips.Add (gameObject.transform.TransformPoint (centerCoords));
 	}
 
 	private Vector3 RandomNormalCurveVector (float range) {
