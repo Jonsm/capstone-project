@@ -3,14 +3,41 @@ using System.Collections;
 using System.Collections.Generic;
 
 public class Extruder : MonoBehaviour {
-	//event type for custom extrude function. toChange is the list to pull, vertices is the mesh's vertices,
-	//and vals is an array of special parameters (i.e. size, offset, etc.)
+	//event type for custom extrude function. 
 	public delegate void ExtrudeType (List <int> toChange, Mesh mesh, Vector3 [] vals);
 
 	//Extrudes a face (triangles) in the direction offset
-	public static void Extrude (Mesh mesh, int [] faces, bool hardEdge, ExtrudeType ex, Vector3 [] vals) {
+	//toChange is the list to pull, vertices is the mesh's vertices,
+	//vals is an array of special parameters (i.e. size, offset, etc.), recalculate is whether to recalculate
+	//bounds and normals afterward. Don't do it if you are doing multiple extrudes in a row, as it takes a while.
+	public static List <int> Extrude (Mesh mesh, int [] faces, bool hardEdge, ExtrudeType ex, 
+	                            Vector3 [] vals, bool recalculate = true) {
 		Vector3 [] vertices = mesh.vertices;
 		int [] triangles = mesh.triangles;
+
+		//dictionary for fast lookup of where vertices are
+		Dictionary <Vector3, List <int>> verticesLookup = new Dictionary<Vector3, List <int>> ();
+		for (int i = 0; i < vertices.Length; i++) {
+			if (!verticesLookup.ContainsKey (vertices [i])) 
+				verticesLookup [vertices [i]] = new List <int> ();
+			verticesLookup [vertices [i]].Add (i);
+		}
+
+		//dictionary for fast lookup of which vertices are connected to each other
+		Dictionary <int, List <int>> triConnections = new Dictionary <int, List <int>> ();
+		for (int i = 0; i < triangles.Length; i += 3) {
+			if (!triConnections.ContainsKey (triangles [i])) triConnections [triangles [i]] = new List <int> ();
+			triConnections [triangles [i]].Add (triangles [i + 1]);
+			triConnections [triangles [i]].Add (triangles [i + 2]);
+
+			if (!triConnections.ContainsKey (triangles [i + 1])) triConnections [triangles [i + 1]] = new List <int> ();
+			triConnections [triangles [i + 1]].Add (triangles [i]);
+			triConnections [triangles [i + 1]].Add (triangles [i + 2]);
+
+			if (!triConnections.ContainsKey (triangles [i + 2])) triConnections [triangles [i + 2]] = new List <int> ();
+			triConnections [triangles [i + 2]].Add (triangles [i]);
+			triConnections [triangles [i + 2]].Add (triangles [i + 1]);
+		}
 		
 		//key = face vertices, value = edge vertices with same coords
 		Dictionary <int, List <int>> faceToSides = new Dictionary<int, List<int>> ();
@@ -21,8 +48,9 @@ public class Extruder : MonoBehaviour {
 			if (occurrences <= 2 && !faceToSides.ContainsKey (i)) {
 				faceToSides.Add (i, new List <int> ()) ;
 
-				for (int j = 0; j < vertices.Length; j++) {
-					if (vertices [j] == vertices [i] && j != i) faceToSides [i].Add (j);
+				for (int j = 0; j < verticesLookup [vertices [i]].Count; j++) {
+					int k = verticesLookup [vertices [i]] [j];
+					if (k != i) faceToSides [i].Add (k);
 				}
 			}
 		}
@@ -83,7 +111,7 @@ public class Extruder : MonoBehaviour {
 
 			foreach (int i in faceToSides [curr]) {
 				foreach (int j in faceToSides [prev]) {
-					if (AreConnected (mesh, i, j)) {
+					if (AreConnected (triConnections, i, j)) {
 						s1 = i;
 						s2 = j;
 					}
@@ -134,21 +162,21 @@ public class Extruder : MonoBehaviour {
 		toChange.AddRange (addedVertices.Values);
 		ex (toChange, mesh, vals);
 
-		mesh.RecalculateBounds ();
-		mesh.RecalculateNormals ();
+		if (recalculate) {
+			mesh.RecalculateBounds ();
+			mesh.RecalculateNormals ();
+		}
+
+		//return all new vertices on the side
+		List <int> sideVerts = new List <int> ();
+		sideVerts.AddRange (addedVertices.Values);
+		if (hardEdge) sideVerts.AddRange (copies.Values);
+		return sideVerts; 
 	}
 
-	//Returns true if vertices at indices a and b are connected
-	private static bool AreConnected (Mesh mesh, int a, int b) {
-		if (a == b) return false;
-		for (int i = 0; i < mesh.triangles.Length; i += 3) {
-			int matches = 0;
-			for (int j = i; j < i + 3; j++) {
-				if (mesh.triangles [j] == a || mesh.triangles [j] == b) matches++;
-			}
-			if (matches == 2) return true;
-		}
-		return false;
+	//Returns true if vertices with lookups in connections are connected
+	private static bool AreConnected (Dictionary <int, List <int>> connections, int a, int b) {
+		return connections [a].Contains (b);
 	}
 
 	//takes a point on the edge of a group of triangles, returns the next 
@@ -179,7 +207,6 @@ public class Extruder : MonoBehaviour {
 	//adds a vertex to the end of vertices array, increments pos
 	private static void AddVertex (Vector3 [] vertices, ref int pos, Vector3 vertex) {
 		vertices [pos] = vertex;
-		//if (visited != null) visited.Add (pos);
 		pos++;
 	}
 
@@ -280,6 +307,74 @@ public class Extruder : MonoBehaviour {
 
 		mesh.vertices = vertices;
 	}
+
+	//like extrude resize (even), but rotates the face to be perpendicular with offset
+	//Vals has 2 parameters: 1 = offset, 2 = amount to bevel (like in extrudebevel)
+	public static void ExtrudeRotate (List <int> toChange, Mesh mesh, Vector3 [] vals) {
+		//find center of geometry and normal
+		HashSet <int> TCSet = new HashSet <int> (toChange);
+		Vector3 center = Vector3.zero;
+		foreach (int i in TCSet) {
+			center += mesh.vertices [i];
+		}
+		center /= TCSet.Count;
+
+		Vector3 normal = Vector3.zero;
+		for (int i = 0; i < mesh.triangles.Length; i += 3) {
+			int occurrences = 0;
+			for (int j = i; j < i + 3; j++) 
+				if (TCSet.Contains (mesh.triangles [j])) occurrences++;
+			
+			if (occurrences == 3) {
+				normal = Vector3.Cross (
+					mesh.vertices [mesh.triangles [i + 1]] - mesh.vertices [mesh.triangles [i]],
+					mesh.vertices [mesh.triangles [i + 2]] - mesh.vertices [mesh.triangles [i + 1]]);
+				break;
+			}
+		}
+		normal.Normalize ();
+		
+		Vector3 [] newVertices = mesh.vertices;
+
+		//rotate them all
+		Matrix4x4 rotation = new Matrix4x4 ();
+		Quaternion rotQ = Quaternion.FromToRotation (normal, vals [0].normalized);
+		rotation.SetTRS (Vector3.zero, rotQ, new Vector3 (1, 1, 1));
+
+		foreach (int i in TCSet) {
+			newVertices [i] = center + rotation.MultiplyPoint3x4 (newVertices [i] - center);
+		}
+
+		//resize around normal and extrude
+		Matrix4x4 resizeExtrude = new Matrix4x4 ();
+		float radius = (mesh.vertices [toChange [0]] - center).magnitude;
+		float rs = (radius - vals [1].x) / radius;
+
+		//find tangents of normal and compute resize matrix
+		Vector3 tan1 = new Vector3 ();
+		Vector3 tan2 = new Vector3 ();
+		Vector3 norm = vals [0];
+		Vector3.OrthoNormalize (ref norm, ref tan1, ref tan2);
+		Matrix4x4 cb1 = new Matrix4x4 ();
+		cb1.SetColumn (0, tan1);
+		cb1.SetColumn (1, tan2);
+		cb1.SetColumn (2, norm);
+		cb1.SetColumn (3, new Vector4 (0, 0, 0, 1));
+		Matrix4x4 eigenbasis = Matrix4x4.Scale (new Vector3 (rs, rs, 1));
+		eigenbasis.SetColumn (3, new Vector4 (0, 0, 0, 1));
+		Matrix4x4 resize = cb1.inverse * eigenbasis * cb1;
+		resize.SetColumn (3, new Vector4 (0, 0, 0, 1));
+		resize.SetRow (3, new Vector4 (0, 0, 0, 1));
+
+		resizeExtrude.SetTRS (vals [0], Quaternion.identity, new Vector3 (1, 1, 1));
+		resizeExtrude = resize * resizeExtrude;
+		foreach (int i in TCSet) {
+			newVertices [i] = center + resizeExtrude.MultiplyPoint (newVertices [i] - center);
+		}
+
+		mesh.vertices = newVertices;
+	}
+
 	//Extrudes in an artistic way leaving gaps
 	public static void ExtrudeArt(List<int> toChange, Mesh mesh, Vector3 []vals){
 
@@ -305,6 +400,7 @@ public class Extruder : MonoBehaviour {
 		mesh.vertices = vertices;
 
 	}
+
 	//Extrudes in a way that makes monolith style buildings
 	public static void ExtrudeWeirdClean(List<int> toChange, Mesh mesh, Vector3 []vals){
 		
@@ -428,6 +524,5 @@ public class Extruder : MonoBehaviour {
 			}
 		}
 		mesh.vertices = vertices;
-
 	}
 }

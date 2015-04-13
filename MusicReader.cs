@@ -31,11 +31,11 @@ public class MusicReader : MonoBehaviour {
 	IEnumerator DebugBeats (SpectrumAnalyzer sa) {
 		indicator.SetActive (false);
 		while (!sa.done) yield return new WaitForSeconds (.01f);
-		Debug.Log (sa.bandBeats [1].Count);
+		Debug.Log (sa.bandBeats [0].Count);
 		source.clip = song;
 		source.Play ();
 		float zeroTime = Time.time;
-		foreach (float f in sa.bandBeats [0].Keys) {
+		foreach (float f in sa.bandBeats [3].Keys) {
 			while (Time.time - zeroTime < f) yield return new WaitForSeconds (.01f);
 			Debug.Log (f);
 			StartCoroutine ("FlashIndicator");

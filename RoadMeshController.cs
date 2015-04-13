@@ -27,6 +27,12 @@ public class RoadMeshController : MonoBehaviour {
 
 		//Vector3 [] vals = new Vector3 [] {mov};
 		//Vector3 [] vals2 = new Vector3 [] {-1 * mov};
+
+		//Vector3 [] resizeVals = new Vector3 [] {mov, new Vector3 (1.5f, 1.5f, 1.5f)};
+		//Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (.2f, 0, 0)};
+		//Extruder.Extrude (mesh, currentFaces, false, Extruder.ExtrudeBevel, offsetVals);
+		//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeBevel, offsetVals);
+
 		//Vector3 [] resizeVals = new Vector3 [] {mov, new Vector3 (1.5f, 1.5f, 1.5f)};
 		//Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (.1f, 0, 0)};
 		//Extruder.Extrude (mesh, currentFaces, false, Extruder.ExtrudeWeirdClean, resizeVals);
@@ -34,10 +40,9 @@ public class RoadMeshController : MonoBehaviour {
 		//Tiered square pyramid loops
 		//for (int i = 0; i < 20; i +=1)
 		//{
-			Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (10f, 0, 0)};//Makes a tiered square
-			Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeBevel, offsetVals);//Makes a tiered square
+			//Vector3 [] offsetVals = new Vector3 [] {mov, new Vector3 (10f, 0, 0)};//Makes a tiered square
+			//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeBevel, offsetVals);//Makes a tiered square
 		//}
-
 
 		//Extruder.Extrude (mesh, currentFaces, true, Extruder.ExtrudeOffset, vals2);
 		//TestDrag (mesh, currentFaces);
