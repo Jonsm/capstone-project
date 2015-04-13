@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 263fc84a238080d40aa2eea3ede58468
+timeCreated: 1428881881
+licenseType: Free
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences:
+  - thisMetalGUISkin: {fileID: 11400000, guid: 3f13bb8951709ef4daea5f555585ba2c, type: 2}
+  - m_directoryImage: {fileID: 2800000, guid: 1406bb3241f49524ab32e39637a85257, type: 3}
+  - m_fileImage: {fileID: 2800000, guid: 2b2223e008029e9428c28e26d2768a00, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
