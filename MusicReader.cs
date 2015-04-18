@@ -16,6 +16,7 @@ public class MusicReader : MonoBehaviour {
 		indicator2.SetActive (false);
 		//StartCoroutine (DebugBPF (sa));
 		StartCoroutine (DebugBeats (sa));
+		//StartCoroutine (DebugFreqs (sa));
 	}
 
 	void Update () {
@@ -31,11 +32,20 @@ public class MusicReader : MonoBehaviour {
 	IEnumerator DebugBeats (SpectrumAnalyzer sa) {
 		indicator.SetActive (false);
 		while (!sa.done) yield return new WaitForSeconds (.01f);
-		Debug.Log (sa.bandBeats [0].Count);
+	
+		int max = 0;
+		float maxPow = 0;
+		for (int i = 0; i < sa.beatTotalPower.Length; i++) {
+			if (sa.beatTotalPower [i] > maxPow) {
+				maxPow = sa.beatTotalPower [i];
+				max = i;
+			}
+		}
+
 		source.clip = song;
 		source.Play ();
 		float zeroTime = Time.time;
-		foreach (float f in sa.bandBeats [3].Keys) {
+		foreach (float f in sa.bandBeats [max].Keys) {
 			while (Time.time - zeroTime < f) yield return new WaitForSeconds (.01f);
 			Debug.Log (f);
 			StartCoroutine ("FlashIndicator");
@@ -43,15 +53,18 @@ public class MusicReader : MonoBehaviour {
 		yield return null;
 	}
 
-	//plays band passed clip
-	IEnumerator DebugBPF (SpectrumAnalyzer sa) {
+	IEnumerator DebugFreqs (SpectrumAnalyzer sa) {
 		while (!sa.done) yield return new WaitForSeconds (.01f);
-		AudioClip copy = Instantiate (song) as AudioClip;
-		source.Stop ();
-		copy.SetData (sa.band, 0);
-		source.clip = copy;
+		Debug.Log (sa.charPitches.Length);
+
+		source.clip = song;
 		source.Play ();
 
+		yield return new WaitForSeconds (sa.sampleTime / 2);
+		foreach (float f in sa.volumes) {
+			Debug.Log (f);
+			yield return new WaitForSeconds (sa.sampleTime);
+		}
 		yield return null;
 	}
 
@@ -60,4 +73,16 @@ public class MusicReader : MonoBehaviour {
 		yield return new WaitForSeconds (.05f);
 		indicator.SetActive (false);
 	}
+
+	/*//plays band passed clip
+	IEnumerator DebugBPF (SpectrumAnalyzer sa) {
+		while (!sa.done) yield return new WaitForSeconds (.01f);
+		AudioClip copy = Instantiate (song) as AudioClip;
+		source.Stop ();
+		copy.SetData (sa.band, 0);
+		source.clip = copy;
+		source.Play ();
+		
+		yield return null;
+	}*/
 }

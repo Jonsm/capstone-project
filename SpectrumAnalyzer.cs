@@ -14,41 +14,35 @@ public class SpectrumAnalyzer {
 		new int[] {3200, 20000}
 	};
 
-	//where characteristic pitch is allowed to fall
-	//private int[] characteristicRange = new int[] {100, 2000};
-
 	private int fudgeFactor = 16; //will use 1/fudgefactor signals, must be power of 2
 	private int threads = 4; //how many ways to split the samples
-	private float idealSampleRate = 1; //ideal sample rate, in hertz
+	private float idealSampleRate = .25f; //ideal sample rate, in hertz
 	private float hanningTime = .05f; //falloff time for hanning window
-	private float maxFactor = .1f; // % of max it needs to be to be considered a peak
-	//private float rippleFactor = 2; //ripple factor for chebyshev filter
-	//private int bandNum = 64;
-	//private int samplesBackcheck = 15; //amount of past samples to compare to when doing beats
-	//private int c = 5; //factor pow > c*pow_avg for it to be a beat
-	//private float closeBeatThreshold = 1f / 32;
-	//private int sampleLength = 1024; //length of each sample to be used with FFT, must be power of 2
+	private int smoothWindow = 2; //window around array value to take average in smoothing
 
 	private int bpmWindow = 32; //size of window used to check for beats
 	private int [] bpmRange = new int[] {40, 200}; //min and max beats per minute to look for
 
 	private int sampleLength;
 	private float time;
-	private float sampleTime;
 	private float [] song;
 	private double [][] samples_RE;
 	private double [][] samples_IM;
 	private double [][][] bandSamples_RE;
 	private double [][][] bandSamples_IM;
+
+	private double [] AWeightings;
 	private double [] hanning_RE;
 	private double [] hanning_IM;
-	//private int [][] bands;
+	private float [][] pCharPitches;
+	//              ^ hehe
 
-	public SortedDictionary <float, float> beats = new SortedDictionary <float, float> (); //hashes each beat time to its power
-	public SortedDictionary <float, float> [] bandBeats;
-	//public float [] characteristicPitches; //list of characteristic pitches for each sample
-	public bool done = false;
-	public float [] band;
+	public float sampleTime; //time of each sample (for charPitches and volumes)
+	public SortedDictionary <float, float> [] bandBeats; //hashes beat time to power for each band
+	public float [] beatTotalPower; //total power for each band during beats, use to rate "matching"
+	public float [] charPitches; //list of characteristic pitches for each sample
+	public float [] volumes; //list of voumes for each sample
+	public bool done = false; //for sync
 
 	public SpectrumAnalyzer (float [] song_in, float time_in) {
 		time = time_in;
@@ -74,6 +68,11 @@ public class SpectrumAnalyzer {
 		bandBeats = new SortedDictionary <float, float> [bands.Length];
 		for (int i = 0; i < bandBeats.Length; i++)
 			bandBeats [i] = new SortedDictionary<float, float> ();
+		beatTotalPower = new float [bands.Length];
+
+		pCharPitches = new float [numSamples][];
+		charPitches = new float [numSamples];
+		volumes = new float [numSamples];
 	}
 
 	//start run in another thread so it doesn't delay anything
@@ -84,7 +83,6 @@ public class SpectrumAnalyzer {
 
 	//Runs EVERYTHING
 	public void RunThread () {
-		Debug.Log ("Song " + song.Length);
 		//run FFTs on each sample
 		List <Thread> threadsList = new List <Thread> ();
 		for (int i = 0; i < samples_RE.Length; i+= (samples_RE.Length / threads)) {
@@ -104,6 +102,16 @@ public class SpectrumAnalyzer {
 				threadsList.Add (thread);
 				thread.Start (new int[] {bands [i][0], bands [i][1], i, j, end});
 			}
+		}
+		foreach (Thread t in threadsList) t.Join ();
+	
+		//get volume and characteristic frequency data
+		MakeAWeighting ();
+		threadsList.Clear ();
+		for (int i = 0; i < bands.Length; i++) {
+			Thread thread = new Thread (AddVolumeCharFreq);
+			threadsList.Add (thread);
+			thread.Start (new int[] {i});
 		}
 		foreach (Thread t in threadsList) t.Join ();
 
@@ -156,12 +164,18 @@ public class SpectrumAnalyzer {
 		//look for beats
 		threadsList.Clear ();
 		for (int i = 0; i < bands.Length; i++) {
-			//int end = Mathf.Min (i + (samples_RE.Length / threads), samples_RE.Length);
 			Thread thread = new Thread (FindBeatsII);
 			threadsList.Add (thread);
 			thread.Start (new int[] {i});
 		}
 		foreach (Thread t in threadsList) t.Join ();
+
+		//smooth charpitches and volumes array
+		for (int i = 0; i < pCharPitches.Length; i++) {
+			charPitches [i] = pCharPitches [i][0];
+		}
+		charPitches = SmoothArray (charPitches);
+		volumes = SmoothArray (volumes);
 
 		done = true;
 		Debug.Log ("done");
@@ -238,22 +252,20 @@ public class SpectrumAnalyzer {
 		int end = arr [4];
 		bool lowPass = (top < 16000);
 		bool highPass = (bottom > 0);
-		//Debug.Log (pos + " " + highPass);
 
 		//compute the filter gain for each sample so it doesn't have to be computed each run
 		float [] gains = new float [samples_RE [0].Length]; //get ripped
-		//float reverseCutoff = (float) gains.Length / sampleTime - bottom;
+
 		for (int i = 0; i < gains.Length / 2; i++) {
 			if (lowPass) {
 				float freq = (float) i / sampleTime;
-				float lowGain = (freq > top) ? 0 : 1;//Butterworth (freq, top, 10);
+				float lowGain = (freq > top) ? 0 : 1;
 				gains [i] = lowGain;
 				gains [gains.Length - i - 1] = lowGain;
 			} else gains [i] = 1;
 			if (highPass) {
 				float freq = (float) i / sampleTime;
-				//float reverseFreq = (float) (gains.Length - i - 1) / sampleTime;
-				float highGain = (freq < bottom) ? 0 : 1;//Butterworth (reverseFreq, reverseCutoff, 10);
+				float highGain = (freq < bottom) ? 0 : 1;
 				gains [i] *= highGain;
 				gains [gains.Length - i - 1] *= highGain;
 			}
@@ -318,42 +330,10 @@ public class SpectrumAnalyzer {
 		}
 	}
 
-	//looks for peaks above a certain threshold
-	private void FindBeats (object obj) {
-		int [] arr = (int[]) obj;
-		int pos = arr [0];
-
-		//find the max value in the band
-		double max = 0;
-		for (int i = 0; i < bandSamples_RE [pos].Length; i++) {
-			for (int j = 0; j < bandSamples_RE [pos][i].Length; j++) {
-				if (bandSamples_RE [pos][i][j] > max) max = bandSamples_RE [pos][i][j];
-			}
-		}
-
-		//find all beats > maxfactor*max
-		bool onset = false;
-		for (int i = 0; i < bandSamples_RE [pos].Length; i++) {
-			for (int j = 0; j < bandSamples_RE [pos][i].Length; j++) {
-				double current = bandSamples_RE [pos][i][j];
-				float time = ((float) j / bandSamples_RE [pos][i].Length) * sampleTime + i * sampleTime;
-				if (!onset && current > max * maxFactor) {
-					onset = true;
-					lock (beats) {
-						beats.Add (time, (float) current);
-					}
-				} else if (onset && current < max * maxFactor) {
-					onset = false;
-				}
-			}
-		}
-	}
-
 	//find beats by checking similarity with several general beat patterns
 	private void FindBeatsII (object obj) {
 		int [] arr = (int[]) obj;
 		int pos = arr [0];
-		//Debug.Log(pos + " " + bandSamples_RE [pos].Length);
 		int length = bandSamples_RE [pos].Length * bandSamples_RE [pos][0].Length;
 
 		//find the max value in the band
@@ -416,21 +396,8 @@ public class SpectrumAnalyzer {
 			}
 		}
 
-		Debug.Log (time * (float)maxBeatLength / length);
-		//int range = maxBeatLength / 8;
-		/*List <int> newMaxBeats = new List <int> ();
-		foreach (int i in maxBeats) {
-			double maxPow = 0;
-			int maxJ = i - range;
-			for (int j = i - range; j < i + range; j++) {
-				if (accessor (pos, j) > maxPow) {
-					maxPow = accessor (pos, j);
-					maxJ = j;
-				}
-			}
-			newMaxBeats.Add (maxJ);
-		}*/
-		//if (pos == 0) Debug.Log ("here");
+		//put max beat power into array so beats can be compared by match
+		beatTotalPower [pos] = (float) maxBeatPower;
 
 		//add each beat time to array
 		foreach (int i in maxBeats) {
@@ -438,10 +405,171 @@ public class SpectrumAnalyzer {
 			float pow = (float) accessor (pos, i);
 			bandBeats [pos].Add (currTime, pow);
 		}
-
-		//if (pos == 0) Debug.Log ("here" + maxBeats.Count);
 	}
 
+	//Finds the total volume and characteristic frequency for each sample
+	private void AddVolumeCharFreq (object obj) {
+		int [] arr = (int[]) obj;
+		int pos = arr [0];
+
+		for (int i = 0; i < bandSamples_RE [pos].Length; i++) {
+			float localVolume = 0;
+			float localMaxFreq = 0;
+			float localMaxPow = -1;
+			float localPow = -1;
+
+			//check values over each sample
+			for (int j = 0; j < bandSamples_RE [pos][i].Length / 2; j++) {
+				localPow = Mathf.Pow ((float) bandSamples_RE [pos][i][j], 2) + 
+					Mathf.Pow ((float) bandSamples_IM [pos][i][j], 2);
+				localPow *= (float) AWeightings [j]; //multiply to adjust for human hearing range
+				if (localPow > localMaxPow) {
+					localMaxPow = localPow;
+					localMaxFreq = j;
+				}
+				localVolume += localPow;
+			}
+
+			//add volume of this frequency band
+			lock (volumes) {
+				volumes [i] += localVolume; 
+			}
+
+			//find max in all frequency bands
+			lock (pCharPitches) {
+				if (pCharPitches [i] == null) pCharPitches [i] = new float [2];
+
+				if (pCharPitches [i][1] < localMaxPow) {
+					pCharPitches [i][1] = localMaxPow;
+					float realFreq = localMaxFreq / sampleTime;
+					pCharPitches [i][0] = realFreq;
+				}
+			}
+		}
+	}
+
+	//calculates the Fourier transform of the relevantly sized Hanning window
+	private void MakeHanningWindow () {
+		hanning_RE = new double [samples_RE [0].Length];
+		hanning_IM = new double [hanning_RE.Length];
+
+		//create time-domain hanning window
+		int cutoff = (int) ((hanningTime / sampleTime) * (float) hanning_RE.Length);
+		for (int i = 0; i <= cutoff; i++) {
+			hanning_RE [i] = .5f * (1 - Mathf.Cos (2 * Mathf.PI * (i + cutoff) / (cutoff - 1)));
+		}
+
+		//calculate fourier transform
+		FFT fft = new FFT ();
+		fft.init ((uint)Mathf.Log (hanning_RE.Length, 2));
+		fft.run (hanning_RE, hanning_IM);
+	}
+
+	//creates A-weighting curve for sample size
+	private void MakeAWeighting () {
+		AWeightings = new double [samples_RE [0].Length];
+		double c1 = 12200 * 12200;
+		double c2 = 20.6 * 20.6;
+		double c3 = 107.7 * 107.7;
+		double c4 = 737.9 * 737.9;
+	
+		for (int i = 0; i < AWeightings.Length; i++) {
+			double f2 = i * i / sampleTime / sampleTime;
+			AWeightings [i] = (c1 * f2 * f2) / ((f2 + c2) * Mathf.Sqrt ((float) ((f2 + c3) * (f2 + c4))) * (f2 + c1));
+		}
+	}
+
+	//takes the 1st-order finite difference derivative of point j in sample i in band pos
+	private double finiteDiff (int pos, int i, int j) {
+		if (i == 0 && j == 0) {
+			return (bandSamples_RE [pos][i][j + 1] - bandSamples_RE [pos][i][j]);
+		} else if (i == bandSamples_RE [pos][i].Length - 1 && 
+		           j == bandSamples_RE [pos].Length) {
+			return (bandSamples_RE [pos][i][j] - bandSamples_RE [pos][i][j-1]);
+		} else {
+			double prev = 0, next = 0;
+			if (j == bandSamples_RE [pos][i].Length - 1)
+				next = bandSamples_RE [pos][i + 1][0];
+			else next = bandSamples_RE [pos][i][j + 1];
+
+			if (j == 0) 
+				prev = bandSamples_RE [pos][i - 1][bandSamples_RE [pos][i - 1].Length - 1];
+			else prev = bandSamples_RE [pos][i][j - 1];
+			
+			return (next - prev) / 2f;
+		}
+	}
+
+	//smooths array (for volume and characteristic pitch)
+	private float [] SmoothArray (float [] arr) {
+		float [] newArr = new float [arr.Length];
+
+		for (int i = 0; i < arr.Length; i++) {
+			int start = i - smoothWindow;
+			int end = i + smoothWindow;
+
+			//adjust for boundary conditions
+			while (start < 0) start++;
+			while (end >= arr.Length) end--;
+
+			float avg = 0;
+			for (int j = start; j <= end; j++) avg += arr [j];
+			avg /= (end - start + 1);
+			newArr [i] = avg;
+		}
+
+		return newArr;
+	}
+
+	//finds the ith element (regardless of sample) in band pos
+	private double accessor (int pos, int i) {
+		int sample = i / bandSamples_RE [pos][0].Length;
+		int j = i % bandSamples_RE [pos][0].Length;
+		return bandSamples_RE [pos][sample][j];
+	}
+
+	/*//for debug: makes a certain band of the song playable (only works if fudgefactor is 1)
+	private void MakeBand (int bandNum) {
+		band = new float [song.Length];
+		for (int i = 0; i < bandSamples_RE [bandNum].Length; i++) {
+			for (int j = 0; j < bandSamples_RE [bandNum][i].Length; j++) {
+				band [i * sampleLength + j] = (float) bandSamples_RE [bandNum][i][j];
+			}
+		}
+	}*/
+
+	/*//looks for peaks above a certain threshold
+	private void FindBeats (object obj) {
+		int [] arr = (int[]) obj;
+		int pos = arr [0];
+		
+		//find the max value in the band
+		double max = 0;
+		for (int i = 0; i < bandSamples_RE [pos].Length; i++) {
+			for (int j = 0; j < bandSamples_RE [pos][i].Length; j++) {
+				if (bandSamples_RE [pos][i][j] > max) max = bandSamples_RE [pos][i][j];
+			}
+		}
+		
+		//find all beats > maxfactor*max
+		bool onset = false;
+		for (int i = 0; i < bandSamples_RE [pos].Length; i++) {
+			for (int j = 0; j < bandSamples_RE [pos][i].Length; j++) {
+				double current = bandSamples_RE [pos][i][j];
+				float time = ((float) j / bandSamples_RE [pos][i].Length) * sampleTime + i * sampleTime;
+				if (!onset && current > max * maxFactor) {
+					onset = true;
+					lock (beats) {
+						beats.Add (time, (float) current);
+					}
+				} else if (onset && current < max * maxFactor) {
+					onset = false;
+				}
+			}
+		}
+	}*/
+
+	/*
 	private void FindBeatsIII (object obj) {
 		int [] arr = (int[]) obj;
 		int pos = arr [0];
@@ -506,62 +634,7 @@ public class SpectrumAnalyzer {
 			predictedBeat += max_length;
 		}
 	}
-
-	//for debug: makes a certain band of the song playable (only works if fudgefactor is 1)
-	private void MakeBand (int bandNum) {
-		Debug.Log ("band " + bandSamples_RE [bandNum].Length * bandSamples_RE [bandNum][0].Length);
-		band = new float [song.Length];
-		for (int i = 0; i < bandSamples_RE [bandNum].Length; i++) {
-			for (int j = 0; j < bandSamples_RE [bandNum][i].Length; j++) {
-				band [i * sampleLength + j] = (float) bandSamples_RE [bandNum][i][j];
-			}
-		}
-	}
-
-	//calculates the Fourier transform of the relevantly sized Hanning window
-	private void MakeHanningWindow () {
-		hanning_RE = new double [samples_RE [0].Length];
-		hanning_IM = new double [hanning_RE.Length];
-
-		//create time-domain hanning window
-		int cutoff = (int) ((hanningTime / sampleTime) * (float) hanning_RE.Length);
-		for (int i = 0; i <= cutoff; i++) {
-			hanning_RE [i] = .5f * (1 - Mathf.Cos (2 * Mathf.PI * (i + cutoff) / (cutoff - 1)));
-		}
-
-		//calculate fourier transform
-		FFT fft = new FFT ();
-		fft.init ((uint)Mathf.Log (hanning_RE.Length, 2));
-		fft.run (hanning_RE, hanning_IM);
-	}
-
-	//takes the 1st-order finite difference derivative of point j in sample i in band pos
-	private double finiteDiff (int pos, int i, int j) {
-		if (i == 0 && j == 0) {
-			return (bandSamples_RE [pos][i][j + 1] - bandSamples_RE [pos][i][j]);
-		} else if (i == bandSamples_RE [pos][i].Length - 1 && 
-		           j == bandSamples_RE [pos].Length) {
-			return (bandSamples_RE [pos][i][j] - bandSamples_RE [pos][i][j-1]);
-		} else {
-			double prev = 0, next = 0;
-			if (j == bandSamples_RE [pos][i].Length - 1)
-				next = bandSamples_RE [pos][i + 1][0];
-			else next = bandSamples_RE [pos][i][j + 1];
-
-			if (j == 0) 
-				prev = bandSamples_RE [pos][i - 1][bandSamples_RE [pos][i - 1].Length - 1];
-			else prev = bandSamples_RE [pos][i][j - 1];
-			
-			return (next - prev) / 2f;
-		}
-	}
-
-	//finds the ith element (regardless of sample) in band pos
-	private double accessor (int pos, int i) {
-		int sample = i / bandSamples_RE [pos][0].Length;
-		int j = i % bandSamples_RE [pos][0].Length;
-		return bandSamples_RE [pos][sample][j];
-	}
+	*/
 
 	/*//Computes gain for 5th order chebyshev filter
 	private float Chebyshev (float frq, float cutoff, float ripple) {
@@ -613,7 +686,6 @@ public class SpectrumAnalyzer {
 			float pow = BandPower (i, bottom, top);
 			//comparison here
 			if (pow > c * average) {
-				//Debug.Log (i + " " + i * sampleTime);
 				beats.Add (i * sampleTime, pow);
 			}
 
@@ -640,4 +712,13 @@ public class SpectrumAnalyzer {
 		
 		foreach (float f in ToRemove) beats.Remove (f);
 	}*/
+
+	//private float maxFactor = .1f; // % of max it needs to be to be considered a peak
+	//private float rippleFactor = 2; //ripple factor for chebyshev filter
+	//private int bandNum = 64;
+	//private int samplesBackcheck = 15; //amount of past samples to compare to when doing beats
+	//private int c = 5; //factor pow > c*pow_avg for it to be a beat
+	//private float closeBeatThreshold = 1f / 32;
+	//private int sampleLength = 1024; //length of each sample to be used with FFT, must be power of 2
+	//public float [] band;
 }
