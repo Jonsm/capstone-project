@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Mp3FileFinder : MonoBehaviour {
 
-	public string m_mp3Path;
+	public string m_mp3Path ="";
 	public GUISkin thisMetalGUISkin;
 	protected FileBrowser m_fileBrowser;
 	

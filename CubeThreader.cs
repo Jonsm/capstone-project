@@ -14,6 +14,22 @@ public class CubeThreader {
 	public float surface; //cutoff value of isosurface
 	public bool smoothShade;
 	public bool done = false;
+	private float mod2 = 1;
+	private float mod3 = 1;
+	private float mod1_min = 1;
+	private float equil1 = 3;
+	private float mod1_max =1;
+	private float pos1_min =0;
+	private float pos1_max = 0;
+	private float mod2_min =1;
+	private float mod2_max =1;
+	private float pos2_min =0;
+	private float pos2_max = 0;
+	private float mod3_min =1;
+	private float mod3_max =1;
+	private float pos3_min =0;
+	private float pos3_max = 0;
+
 
 	//Error in the currPos, need to change it to the middle of the function so it works
 	//private int currPos = 0;
@@ -21,6 +37,7 @@ public class CubeThreader {
 	private Generator g;
 	private int size = 10;
 	private int count = 0;
+	private float modTemp = 0;
 	public Hashtable generated = new Hashtable ();
 	private func surfaceFunc;
 	public Hashtable triangle = new Hashtable();
@@ -33,12 +50,29 @@ public class CubeThreader {
 	//private TriVert [] tri_vert = new TriVert[1024];
 
 	
-	public CubeThreader(float cube,Generator gen, int[][] r,float surface, int sq){
+	public CubeThreader(float cube,Generator gen, int[][] r,float surface, int sq,
+	                    float m1,float ma1,float p1, float pa1, 
+	                    float m2,float ma2,float p2, float pa2, 
+	                    float m3,float ma3,float p3, float pa3,float equilibrium){
+		mod1_min = m1;
+		mod1_max = ma1;
+		pos1_min = p1;
+		pos1_max = pa1;
+		mod2_min = m2;
+		mod2_max = ma2;
+		pos2_min = p2;
+		pos2_max = pa2;
+		mod3_min = m3;
+		mod3_max = ma3;
+		pos3_min = p3;
+		pos3_max = pa3;
+		equil1 = equilibrium;
 		cubeSize = cube;
 		g = gen;
 		range = r;
 		this.surface = surface;
 		size = sq;
+		modTemp = 1;
 	}
 
 	public void addCubes (Vector2 position){
@@ -200,11 +234,54 @@ public class CubeThreader {
 	float Sphere (Vector3 pos) {
 		return pos.sqrMagnitude;
 	}
+	float mod_curr(int i,Vector3 pos){
+		float mod = equil1;
+
+		//Takes the min if position is less then the minimum and creates step
+		//Needs to have the world continue in this way for a limited amount of time
+		if (i == 1) {
+			if((pos.x  > pos1_max) && mod < mod1_max){
+				if(mod < (mod1_max *((float)(System.Math.Ceiling((double)(pos.x-pos1_max))))/20))
+					mod =(mod1_max *((float)(System.Math.Ceiling((double)(pos.x-pos1_max))))/20);
+					
+			}else if ((pos.x < pos1_min)&& mod > mod1_min){
+				if(mod > mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
+					mod = mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos1_min - pos.x)))));
+			}	
+		}
+		else if (i == 2) {
+			if((pos.z  > pos2_max) && mod < mod2_max){
+				if(mod < (mod2_max *((float)(System.Math.Ceiling((double)(pos.z-pos2_max))))/20))
+					mod =(mod2_max *((float)(System.Math.Ceiling((double)(pos.z-pos2_max))))/20);
+				
+			}else if ((pos.z < pos2_min)&& mod > mod2_min){
+				if(mod > mod2_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
+					mod = mod2_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z)))));
+			}	
+		}
+		else if (i == 3) {
+			if((pos.x  > pos3_max) && mod < mod3_max){
+				if(mod < (mod3_max *((float)(System.Math.Ceiling((double)(pos.x-pos3_max))))/20))
+					mod =(mod3_max *((float)(System.Math.Ceiling((double)(pos.x-pos3_max))))/20);
+				
+			}else if ((pos.x < pos3_min)&& mod > mod3_min){
+				if(mod > mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
+					mod = mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z)))));
+			}	
+		}
+
+		//modTemp = mod;
+		return mod;
+	}
 	
 	float TerrainPlane (Vector3 pos, Generator g) {
-		return .5f * pos.y + 5 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20)
-			+ g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7)
-				+ .5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5);
+		//Calls the mod functions on each of these
+		float modA = mod_curr(1,pos);
+		float modB = mod_curr(2,pos);
+		float modC = mod_curr(3,pos);
+		return (modA *.5f * pos.y + 5 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
+			+ (modB * g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
+				+ (modC * .5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5));
 	}
 	
 	//big long lookup tables
