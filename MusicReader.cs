@@ -8,7 +8,10 @@ public class MusicReader : MonoBehaviour {
 	public GameObject indicator;
 	public GameObject indicator2;
 
+	private float startTime;
+
 	void Start () {
+		startTime = Time.time;
 		float [] data = new float [song.samples * song.channels];
 		song.GetData (data, 0);
 		SpectrumAnalyzer sa = new SpectrumAnalyzer (data, song.length);
@@ -16,6 +19,7 @@ public class MusicReader : MonoBehaviour {
 		indicator2.SetActive (false);
 		//StartCoroutine (DebugBPF (sa));
 		StartCoroutine (DebugBeats (sa));
+		//StartCoroutine (DebugFreqs (sa));
 	}
 
 	void Update () {
@@ -29,29 +33,46 @@ public class MusicReader : MonoBehaviour {
 
 	//flashes indicator along with beat
 	IEnumerator DebugBeats (SpectrumAnalyzer sa) {
+		int every = 1;
+
 		indicator.SetActive (false);
 		while (!sa.done) yield return new WaitForSeconds (.01f);
-		Debug.Log (sa.bandBeats [0].Count);
+		Debug.Log ("TIME = " + (Time.time - startTime));
+	
+		int max = 0;
+		float maxPow = -1 * float.MaxValue;
+		for (int i = 0; i < sa.beatTotalPower.Length; i++) {
+			if (sa.beatTotalPower [i] > maxPow) {
+				maxPow = sa.beatTotalPower [i];
+				max = i;
+			}
+		}
+
 		source.clip = song;
 		source.Play ();
 		float zeroTime = Time.time;
-		foreach (float f in sa.bandBeats [3].Keys) {
+		float num = 0;
+		foreach (float f in sa.bandBeats [max].Keys) {
 			while (Time.time - zeroTime < f) yield return new WaitForSeconds (.01f);
 			Debug.Log (f);
-			StartCoroutine ("FlashIndicator");
+			if (num % every ==0) StartCoroutine ("FlashIndicator");
+			num++;
 		}
 		yield return null;
 	}
 
-	//plays band passed clip
-	IEnumerator DebugBPF (SpectrumAnalyzer sa) {
+	IEnumerator DebugFreqs (SpectrumAnalyzer sa) {
 		while (!sa.done) yield return new WaitForSeconds (.01f);
-		AudioClip copy = Instantiate (song) as AudioClip;
-		source.Stop ();
-		copy.SetData (sa.band, 0);
-		source.clip = copy;
+		Debug.Log (sa.charPitches.Length);
+
+		source.clip = song;
 		source.Play ();
 
+		yield return new WaitForSeconds (sa.sampleTime / 2);
+		foreach (float f in sa.volumes) {
+			Debug.Log (f);
+			yield return new WaitForSeconds (sa.sampleTime);
+		}
 		yield return null;
 	}
 
@@ -60,4 +81,16 @@ public class MusicReader : MonoBehaviour {
 		yield return new WaitForSeconds (.05f);
 		indicator.SetActive (false);
 	}
+
+	/*//plays band passed clip
+	IEnumerator DebugBPF (SpectrumAnalyzer sa) {
+		while (!sa.done) yield return new WaitForSeconds (.01f);
+		AudioClip copy = Instantiate (song) as AudioClip;
+		source.Stop ();
+		copy.SetData (sa.band, 0);
+		source.clip = copy;
+		source.Play ();
+		
+		yield return null;
+	}*/
 }
