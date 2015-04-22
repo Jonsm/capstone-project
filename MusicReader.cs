@@ -8,7 +8,10 @@ public class MusicReader : MonoBehaviour {
 	public GameObject indicator;
 	public GameObject indicator2;
 
+	private float startTime;
+
 	void Start () {
+		startTime = Time.time;
 		float [] data = new float [song.samples * song.channels];
 		song.GetData (data, 0);
 		SpectrumAnalyzer sa = new SpectrumAnalyzer (data, song.length);
@@ -30,11 +33,14 @@ public class MusicReader : MonoBehaviour {
 
 	//flashes indicator along with beat
 	IEnumerator DebugBeats (SpectrumAnalyzer sa) {
+		int every = 1;
+
 		indicator.SetActive (false);
 		while (!sa.done) yield return new WaitForSeconds (.01f);
+		Debug.Log ("TIME = " + (Time.time - startTime));
 	
 		int max = 0;
-		float maxPow = 0;
+		float maxPow = -1 * float.MaxValue;
 		for (int i = 0; i < sa.beatTotalPower.Length; i++) {
 			if (sa.beatTotalPower [i] > maxPow) {
 				maxPow = sa.beatTotalPower [i];
@@ -45,10 +51,12 @@ public class MusicReader : MonoBehaviour {
 		source.clip = song;
 		source.Play ();
 		float zeroTime = Time.time;
+		float num = 0;
 		foreach (float f in sa.bandBeats [max].Keys) {
 			while (Time.time - zeroTime < f) yield return new WaitForSeconds (.01f);
 			Debug.Log (f);
-			StartCoroutine ("FlashIndicator");
+			if (num % every ==0) StartCoroutine ("FlashIndicator");
+			num++;
 		}
 		yield return null;
 	}

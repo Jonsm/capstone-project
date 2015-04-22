@@ -14,11 +14,14 @@ public class SpectrumAnalyzer {
 		new int[] {3200, 20000}
 	};
 
-	private int fudgeFactor = 16; //will use 1/fudgefactor signals, must be power of 2
+	private int fudgeFactor = 16; //will use 1/fudgefactor signals, must be power of 2 <= 16
 	private int threads = 4; //how many ways to split the samples
 	private float idealSampleRate = .25f; //ideal sample rate, in hertz
 	private float hanningTime = .05f; //falloff time for hanning window
 	private int smoothWindow = 2; //window around array value to take average in smoothing
+	private int beatSection = 4; //what fraction of the song to sample for beats (power of 2)
+	private float harmonicTolerance = .75f; //what fraction of the max harmonics must be to count as beats
+	private int maxHarmonic = 4; //largest harmonic to search
 
 	private int bpmWindow = 32; //size of window used to check for beats
 	private int [] bpmRange = new int[] {40, 200}; //min and max beats per minute to look for
@@ -35,7 +38,7 @@ public class SpectrumAnalyzer {
 	private double [] hanning_RE;
 	private double [] hanning_IM;
 	private float [][] pCharPitches;
-	//              ^ hehe
+	//              ^ hehe lol
 
 	public float sampleTime; //time of each sample (for charPitches and volumes)
 	public SortedDictionary <float, float> [] bandBeats; //hashes beat time to power for each band
@@ -161,10 +164,10 @@ public class SpectrumAnalyzer {
 		}
 		foreach (Thread t in threadsList) t.Join ();
 
-		//look for beats
+		//beats me
 		threadsList.Clear ();
 		for (int i = 0; i < bands.Length; i++) {
-			Thread thread = new Thread (FindBeatsII);
+			Thread thread = new Thread (FindBeatsIV);
 			threadsList.Add (thread);
 			thread.Start (new int[] {i});
 		}
@@ -270,6 +273,7 @@ public class SpectrumAnalyzer {
 				gains [gains.Length - i - 1] *= highGain;
 			}
 		}
+
 		//apply the filter
 		for (int i = start; i < end; i++) {
 		  	bandSamples_RE [pos][i] = new double [samples_RE [i].Length];
@@ -305,10 +309,12 @@ public class SpectrumAnalyzer {
 		for (int i = start; i < end; i++) {
 			for (int j = 0; j < bandSamples_RE [pos][i].Length; j++) {
 				//do a complex multiplication
-				bandSamples_RE [pos][i][j] = bandSamples_RE [pos][i][j] * hanning_RE [j] -
-											 hanning_IM [j] * bandSamples_IM [pos][i][j];
-				bandSamples_IM [pos][i][j] = bandSamples_RE [pos][i][j] * hanning_IM [j] +
-											 hanning_RE [j] * bandSamples_IM [pos][i][j];
+				double re = bandSamples_RE [pos][i][j];
+				double im = bandSamples_IM [pos][i][j];
+				bandSamples_RE [pos][i][j] = re * hanning_RE [j] -
+											 hanning_IM [j] * im;
+				bandSamples_IM [pos][i][j] = re * hanning_IM [j] +
+											 hanning_RE [j] * im;
 			}
 		}
 	}
@@ -330,80 +336,86 @@ public class SpectrumAnalyzer {
 		}
 	}
 
-	//find beats by checking similarity with several general beat patterns
-	private void FindBeatsII (object obj) {
-		int [] arr = (int[]) obj;
+	//convolves large part of song with itself (or at least the largest power of 2) and find peaks
+	private void FindBeatsIV (object obj) {
+		int [] arr = (int []) obj;
 		int pos = arr [0];
-		int length = bandSamples_RE [pos].Length * bandSamples_RE [pos][0].Length;
+		int l1 = bandSamples_RE [pos].Length * bandSamples_RE [pos][0].Length;
+		uint log = (uint) Mathf.Log (l1, 2);
+		int length = (int) Mathf.Pow (2, log);
+		log -= (uint) Mathf.Log (beatSection, 2);
+		length /= beatSection;
 
-		//find the max value in the band
-		double max = 0;
-		int maxPos = 0;
+		//copy all stuff to new arrays
+		double [] x_RE = new double [length];
+		double [] x_IM = new double [length];
+		for (int i = 0; i < length; i++) x_RE [i] = accessor (pos, i);
+
+		//FFT and store copy so it doesn't have to be made twice
+		FFT fft = new FFT ();
+		fft.init (log);
+		fft.run (x_RE, x_IM, false);
+		double [] x_freq_RE = new double [length];
+		double [] x_freq_IM = new double [length];
 		for (int i = 0; i < length; i++) {
-			double curr = accessor (pos, i);
-			if (curr > max) {
-				max = curr;
-				maxPos = i;
+			x_freq_IM [i] = x_IM [i];
+			x_freq_RE [i] = x_RE [i];
+		}
+
+		//convolve by complex multiplying in frequency space
+		for (int i = 0; i < length; i++) {
+			double re = x_RE [i];
+			double im = x_IM [i];
+			x_RE [i] = re * re - im * im;
+			x_IM [i] = 2 * re * im;
+		}
+		fft.init (log);
+		fft.run (x_RE, x_IM, true);
+
+		//find max displacement (distance between beats)
+		float ratio = 0;
+		int maxDis = findHarmonics (x_RE, out ratio);
+		beatTotalPower [pos] = ratio;
+		if (maxDis == 0) return;
+
+		//make comb filter and FFT it
+		double [] comb_RE = MakeCombFilter (length, maxDis);
+		double [] comb_IM = new double [length];
+		fft.init (log);
+		fft.run (comb_RE, comb_IM, false);
+
+		//convolve comb filter with FFT'd song
+		for (int i = 0; i < length; i++) {
+			double re = x_freq_RE [i];
+			double im = x_freq_IM [i];
+			x_freq_RE [i] = re * comb_RE [i] - im * comb_IM [i];
+			x_freq_IM [i] = im * comb_RE [i] + re * comb_IM [i];
+		}
+		fft.init (log);
+		fft.run (x_freq_RE, x_freq_IM, true);
+
+		//find max comb displacement (delay of first beat)
+		int maxStart = 0;
+		float maxPow = 0;
+		for (int i = 0; i < length; i++) {
+			if (Mathf.Abs ((float) x_freq_RE [i]) > maxPow) {
+				maxPow = Mathf.Abs ((float) x_freq_RE [i]);
+				maxStart = i;
 			}
 		}
 
-		//convert bpm to discrete sample sizes
-		float maxBeatTime = (float) 60 / bpmRange [1];
-		float minBeatTime = (float) 60 / bpmRange [0];
-		int shortBeatLength = (int) (maxBeatTime * (float) length / time);
-		int longBeatLength = (int) (minBeatTime * (float) length / time);
-
-		//space other beats evenly around max
-		int maxBeatLength = shortBeatLength;
-		double maxBeatPower = 0;
-		List <int> maxBeats = new List <int> ();
-		List <int> vals = new List <int> ();
-		List <double> pows = new List <double> ();
-		for (int i = shortBeatLength; i < longBeatLength; i ++) {
-			//add all points that correspond to beats
-			vals.Clear ();
-			pows.Clear ();
-			int checker = maxPos;
-			while (checker + bpmWindow / 2 < length) {
-				vals.Add (checker);
-				checker += i;
-			}
-			checker = maxPos;
-			do {
-				checker -= i;
-				vals.Add (checker);
-			} while (checker > i + bpmWindow / 2);
-
-			//find their total
-			foreach (int val in vals) {
-				double sum = 0;
-				for (int j = val - bpmWindow / 2; j < val + bpmWindow / 2; j++) {
-					pows.Add (sum);
-					sum += accessor (pos, j);
-				}
+		int offset = (int) (maxStart / maxDis);
+		int time = maxStart - maxDis * offset;
+		while (time < l1) {
+			float pow = 0;
+			int end = (int) Mathf.Min (l1, time + bpmWindow / 2);
+			for (int i = (int) Mathf.Max (0, time - bpmWindow / 2); i < end; i++) {
+				pow += (float) accessor (pos, i);
 			}
 
-			double pow = 0;
-			for (int k = 2; k < vals.Count - 2; k++) {
-				pow += pows [k - 2] * pows [k - 1] * pows [k] * pows [k + 1] * pows [k + 2];
-			}
-
-			if (pow > maxBeatPower) {
-				maxBeatPower = pow;
-				maxBeatLength = i;
-				maxBeats.Clear ();
-				maxBeats.AddRange (vals);
-			}
-		}
-
-		//put max beat power into array so beats can be compared by match
-		beatTotalPower [pos] = (float) maxBeatPower;
-
-		//add each beat time to array
-		foreach (int i in maxBeats) {
-			float currTime = (float) i * time / length;
-			float pow = (float) accessor (pos, i);
-			bandBeats [pos].Add (currTime, pow);
+			float actualTime = sampleTime * (float) time / bandSamples_RE [pos][0].Length;
+			bandBeats [pos].Add (actualTime, pow);
+			time += maxDis;
 		}
 	}
 
@@ -446,6 +458,59 @@ public class SpectrumAnalyzer {
 				}
 			}
 		}
+	}
+
+	//takes an already convolved signal and finds not only the max but the
+	//closest harmonic of the max offset, the out parameter is the peak strength
+	private int findHarmonics (double [] l, out float ratio) {
+		float maxBeatTime = 60f / bpmRange [0];
+		int maxBeatLength = (int) ((float) bandSamples_RE [0][0].Length * maxBeatTime / sampleTime);
+		float minBeatTime = 60f / bpmRange [1];
+		int minBeatLength = (int) ((float) bandSamples_RE [0][0].Length * minBeatTime / sampleTime);
+
+		//find the largest peak
+		int maxDis = 0;
+		float maxPow = 0;
+		float avg = 0;
+		for (int i = minBeatLength; i < maxBeatLength; i++) {
+			avg += Mathf.Abs ((float) l [i]);
+			if (Mathf.Abs ((float) l [i]) > maxPow) {
+				maxPow = Mathf.Abs ((float) l [i]);
+				maxDis = i;
+			}
+		}
+		avg /= l.Length;
+
+		//look for harmonics above a certain percentage of the max value
+		int top = maxDis;
+		for (int i = 2; i < maxHarmonic; i++) {
+			int center = top / i;
+			if (center < minBeatLength) continue;
+			for (int j = center - bpmWindow / 2; j < center + bpmWindow / 2; j++) {
+				if (Mathf.Abs ((float) l [j]) > harmonicTolerance * maxPow) maxDis = j;
+			}
+		}
+
+		//ratio = maxPow / avg;
+		if (maxDis == 0) ratio = -1 * float.MaxValue;
+		else ratio = -1 * maxDis;
+		return maxDis;
+	}
+
+	//makes a comb filter in time domain with certain length and distance dist between peaks
+	//spikes are of width bpmwindow
+	private double [] MakeCombFilter (int length, int dist) {
+		double [] comb = new double [length];
+		//make first part of comb filter
+		for (int i = 0; i <= bpmWindow / 2; i++) comb [i] = Mathf.Lerp (0, 1, 2 * i / bpmWindow);
+		for (int i = bpmWindow / 2; i < bpmWindow; i++) comb [i] = Mathf.Lerp (1, 0, 2 * i / bpmWindow - 1);
+
+		//copy it; - dist is to prevent half-combs
+		for (int i = dist; i < length - dist; i++) {
+			comb [i] = comb [i - dist];
+		}
+
+		return comb;
 	}
 
 	//calculates the Fourier transform of the relevantly sized Hanning window
@@ -527,6 +592,83 @@ public class SpectrumAnalyzer {
 		int j = i % bandSamples_RE [pos][0].Length;
 		return bandSamples_RE [pos][sample][j];
 	}
+
+	/*//find beats by checking similarity with several general beat patterns
+	private void FindBeatsII (object obj) {
+		int [] arr = (int[]) obj;
+		int pos = arr [0];
+		int length = bandSamples_RE [pos].Length * bandSamples_RE [pos][0].Length;
+		
+		//find the max value in the band
+		double max = 0;
+		int maxPos = 0;
+		for (int i = 0; i < length; i++) {
+			double curr = accessor (pos, i);
+			if (curr > max) {
+				max = curr;
+				maxPos = i;
+			}
+		}
+		
+		//convert bpm to discrete sample sizes
+		float maxBeatTime = (float) 60 / bpmRange [1];
+		float minBeatTime = (float) 60 / bpmRange [0];
+		int shortBeatLength = (int) (maxBeatTime * (float) length / time);
+		int longBeatLength = (int) (minBeatTime * (float) length / time);
+		
+		//space other beats evenly around max
+		int maxBeatLength = shortBeatLength;
+		double maxBeatPower = 0;
+		List <int> maxBeats = new List <int> ();
+		List <int> vals = new List <int> ();
+		List <double> pows = new List <double> ();
+		for (int i = shortBeatLength; i < longBeatLength; i ++) {
+			//add all points that correspond to beats
+			vals.Clear ();
+			pows.Clear ();
+			int checker = maxPos;
+			while (checker + bpmWindow / 2 < length) {
+				vals.Add (checker);
+				checker += i;
+			}
+			checker = maxPos;
+			do {
+				checker -= i;
+				vals.Add (checker);
+			} while (checker > i + bpmWindow / 2);
+			
+			//find their total
+			foreach (int val in vals) {
+				double sum = 0;
+				for (int j = val - bpmWindow / 2; j < val + bpmWindow / 2; j++) {
+					pows.Add (sum);
+					sum += accessor (pos, j);
+				}
+			}
+			
+			double pow = 0;
+			for (int k = 2; k < vals.Count - 2; k++) {
+				pow += pows [k - 2] * pows [k - 1] * pows [k] * pows [k + 1] * pows [k + 2];
+			}
+			
+			if (pow > maxBeatPower) {
+				maxBeatPower = pow;
+				maxBeatLength = i;
+				maxBeats.Clear ();
+				maxBeats.AddRange (vals);
+			}
+		}
+		
+		//put max beat power into array so beats can be compared by match
+		beatTotalPower [pos] = (float) maxBeatPower;
+		
+		//add each beat time to array
+		foreach (int i in maxBeats) {
+			float currTime = (float) i * time / length;
+			float pow = (float) accessor (pos, i);
+			bandBeats [pos].Add (currTime, pow);
+		}
+	}*/
 
 	/*//for debug: makes a certain band of the song playable (only works if fudgefactor is 1)
 	private void MakeBand (int bandNum) {
