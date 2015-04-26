@@ -9,13 +9,17 @@ using NAudio.Wave;
 
 
 public class MenuScript : MonoBehaviour {
-
+	//Need Tree, Building, CubeManager prefabs
 	public GameObject explorer;
-	public GameObject music;
+	public GameObject cubeManager;
+	public GameObject trees;
+	public GameObject buildings;
+
 	public Canvas quitMenu;
 	public Button startText;
 	public Button exitText;
-	public bool songUp = false;
+
+	private bool songUp = false;
 	private string pathName = "";
 	private GameObject mp3;
 	private bool up = false;
@@ -42,9 +46,9 @@ public class MenuScript : MonoBehaviour {
 		startText = startText.GetComponent<Button> ();
 		exitText = exitText.GetComponent<Button> ();
 	}
-
+	//Calls the main Manager that starts the level
 	public void StartLevel(){
-		new MainManager (song);
+		new MainManager (song,cubeManager,trees,buildings);
 		//Application.LoadLevel (1);
 	}
 	
@@ -135,68 +139,5 @@ public class MenuScript : MonoBehaviour {
 	}
 
 }
-	/*
-	private void LoadAudio()
-	{			
-		byte[] songData;
-		songData = File.ReadAllBytes(pathName);
-
-		if (!LoadAudioFromData(songData))
-		{
-			UnityEngine.Debug.LogError("Could not load");
-			return;
-		}
-			
-		mWaveOutDevice.Play();
-		Resources.UnloadUnusedAssets();
-
-	}
-
-	private void UnloadAudio()
-	{
-		if (mWaveOutDevice != null)
-		{
-			mWaveOutDevice.Stop();
-		}
-		if (mMainOutputStream != null)
-		{
-			// this one really closes the file and ACM conversion
-			mVolumeStream.Close();
-			mVolumeStream = null;
-			
-			// this one does the metering stream
-			mMainOutputStream.Close();
-			mMainOutputStream = null;
-		}
-		if (mWaveOutDevice != null)
-		{
-			mWaveOutDevice.Dispose();
-			mWaveOutDevice = null;
-		}
-	}
-	*/
-
-	/*
-	private bool LoadAudioFromData(byte[] data)
-	{
-		try
-		{
-			MemoryStream tmpStr = new MemoryStream(data);
-			mMainOutputStream = new Mp3FileReader(tmpStr);
-			mVolumeStream = new WaveChannel32(mMainOutputStream);
-			
-			mWaveOutDevice = new WaveOut();
-			mWaveOutDevice.Init(mVolumeStream);
-			
-			return true;
-		}
-		catch (System.Exception ex)
-		{
-			UnityEngine.Debug.LogWarning("Error! " + ex.Message);
-		}
-		
-		return false;
-	}
-*/
 
 

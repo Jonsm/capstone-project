@@ -245,7 +245,7 @@ public class CubeThreader {
 					mod =(mod1_max *((float)(System.Math.Ceiling((double)(pos.x-pos1_max))))/20);
 					
 			}else if ((pos.x < pos1_min)&& mod > mod1_min){
-				if(mod > mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
+				if(mod > mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos1_min - pos.x))))))
 					mod = mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos1_min - pos.x)))));
 			}	
 		}
@@ -265,8 +265,8 @@ public class CubeThreader {
 					mod =(mod3_max *((float)(System.Math.Ceiling((double)(pos.x-pos3_max))))/20);
 				
 			}else if ((pos.x < pos3_min)&& mod > mod3_min){
-				if(mod > mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
-					mod = mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z)))));
+				if(mod > mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos3_min - pos.x))))))
+					mod = mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos3_min - pos.x)))));
 			}	
 		}
 
