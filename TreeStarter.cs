@@ -14,7 +14,7 @@ public class TreeStarter : MonoBehaviour {
 		if (Input.GetKeyDown ("up")) {
 			tg.Init ();
 			tg.Grow ();
-			tl.tips = tg.tips;
+			tl.tg = tg;
 			tl.MakeLikeATree ();
 		}
 	}
