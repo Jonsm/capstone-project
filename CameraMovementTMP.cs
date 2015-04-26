@@ -4,8 +4,11 @@ using System.Collections;
 //wasd to move forward, backward, sideways, space to move up, shift to move down
 //mouse to look around
 public class CameraMovementTMP : MonoBehaviour {
+	public GameObject water;
 	private float forceMultiplier = 40;
 	private float dragForce = 2;
+	private bool jump = false;
+	private bool water_speed = false;
 
 	void Start () {
 		gameObject.GetComponent<Rigidbody>().drag = dragForce;
@@ -28,7 +31,7 @@ public class CameraMovementTMP : MonoBehaviour {
 
 		//left right
 		if (Input.GetKey ("a")) {
-			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * left);
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * left );
 		} else if (Input.GetKey ("d")) {
 			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * right);
 		}
@@ -40,6 +43,12 @@ public class CameraMovementTMP : MonoBehaviour {
 			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * Vector3.down);
 		}
 
+		if (Input.GetKey ("e") && jump == true) {
+			gameObject.GetComponent<Rigidbody>().AddForce (forceMultiplier * Vector3.up*30);
+			jump = false;
+		}
+
+
 		//rotate view
 		Vector2 mp = Input.mousePosition;
 		float pitch = Mathf.Lerp (-89, 89, 1 - mp.y / Screen.height);
@@ -47,6 +56,21 @@ public class CameraMovementTMP : MonoBehaviour {
 		GetComponent<Rigidbody>().rotation = Quaternion.Euler (new Vector3 (pitch, yaw, 0));
 	}
 
+	void OnCollisionEnter(Collision col){
+		if (col.gameObject == water) {
+			if(water_speed == false){
+				dragForce = 50;
+				water_speed = true;
+			}
+			else {
+				dragForce = 2;
+				water_speed = false;
+			}
+
+		}else{
+			jump = true;
+		}
+	}
 	//returns a % b that works on negative numbers
 	float ProperMod (float a, float b) {
 		if (a > 0) return a % b;

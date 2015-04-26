@@ -14,7 +14,19 @@ public class CubeManager : MonoBehaviour {
 	public float surface = 1; //cutoff value of isosurface
 	public int max = 15;
 	public int min = -5;
-
+	public float mod1_min = 1;
+	public float mod1_max = 1;
+	public float mod1_change = 0;
+	public float mod1_end = 0;
+	public float mod2_min = 1;
+	public float mod2_max = 1;
+	public float mod2_change = 0;
+	public float mod2_end = 0;
+	public float mod3_min = 1;
+	public float mod3_max = 1;
+	public float mod3_change = 0;
+	public float mod3_end = 0;
+	public float equilibrium;
 	static int count = 0;
 	private int [][] range = {new int[] {-10,10}, new int[] {-5,15}, new int[] {-10,10}};
 	private int cube_count = 0;
@@ -35,7 +47,10 @@ public class CubeManager : MonoBehaviour {
 		//range = r;
 		Generator s = new GradientNoise (UnityEngine.Random.Range (-9000,9000));
 
-		a = new CubeThreader (cubeSize, s,range,surface,size);
+		a = new CubeThreader (cubeSize, s,range,surface,size,
+		                      mod1_min,mod1_max,mod1_change,mod1_end,
+		                      mod2_min,mod2_max, mod2_change,mod2_end,
+		                      mod3_min,mod3_max, mod3_change,mod3_end,equilibrium);
 
 		//Creates numCubes new marching cubes and adds them to the list
 		for (int i = -4; i < 5; i++) {
@@ -79,7 +94,7 @@ public class CubeManager : MonoBehaviour {
 		player = Camera.main.transform.position/(cubeSize*2*size);
 		bool up = false;
 		Debug.Log (player);
-
+		/*
 		if (Math.Floor((double)player.x) != curr_x) {
 			for (int i = -1; i < 1; i++) {
 				for (int j = -1; j < 1; j++){
@@ -109,83 +124,16 @@ public class CubeManager : MonoBehaviour {
 			curr_z = (int)Math.Floor((double)player.z);
 		}
 
-		if (up == true) 
+		if (up == true) {
 			a.Run ();
+			up = false;
+		}
 
 		foreach (Vector2 posit in cubes.Keys) {
 			if((bool)cubes[posit] == false){
 				StartCoroutine(cube_Gen(posit));
 			}
-		}
+		}*/
 		//Need to Check out the cubes around him and for each integer that it goes up by check
 	}
-
-	/* private void min_x(){
-		for (int i = z_min -1 ; i < z_max+1; i++) {
-			Vector2 p = new Vector2 (x_min-1 , i);
-			if (cubes.ContainsKey(p) == false){
-				cubes.Add (p, false);
-				a.addCubes (p);	
-			}
-		}
-		x_min -=1;
-	}
-	private void max_x(){
-		for (int i = z_min -1; i < z_max +1; i++) {
-			Vector2 p = new Vector2 (x_max+1 , i);
-			if (cubes.ContainsKey(p) == false){
-				cubes.Add (p, false);
-				a.addCubes (p);	
-			}
-		}
-		x_max += 1;
-	}
-	private void min_z(){
-		for (int i = x_min-1; i < x_max+1; i++) {
-			Vector2 p = new Vector2 (i,z_min-1);
-			if (cubes.ContainsKey(p) == false){
-				cubes.Add (p, false);
-				a.addCubes (p);	
-			}
-		}
-		z_min -= 1;
-	}
-	private void max_z(){
-		for (int i = x_min-1; i < x_max+1; i++) {
-			Vector2 p = new Vector2 (i,z_max+1);
-			if (cubes.ContainsKey(p) == false){
-				cubes.Add (p, false);
-				a.addCubes (p);	
-			}
-		}
-		z_max += 1;
-	}
-
-	// Update is called once per frame
-	//MATH IS INCORRECT
-	void New_Cubes () {
-		//Use this to add cubes as the person nears the ledges.
-		player = Camera.main.transform.position;
-		if (Math.Abs((x_min * cubeSize*size) - player.x ) < (20)) {
-			min_x();
-		}
-		if ((x_max * cubeSize*size) - player.x < (20)) {
-			max_x();
-		}
-		if (Math.Abs ((z_min * cubeSize*size) - player.z) < 20) {
-			min_z();
-		}
-		if ((z_max * cubeSize*size) - player.z < 20) {
-			max_z ();
-		}
-		a.Run ();
-		foreach (Vector2 posit in a.generated.Keys) {
-			if (a.generated.ContainsKey(posit) && !(bool)(cubes[posit])){
-				Debug.Log("new cube");
-				StartCoroutine(cube_Gen(posit));
-			}
-		}
-
-	}
-	*/
 }
