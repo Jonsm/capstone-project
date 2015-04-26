@@ -12,10 +12,13 @@ public class TreeGenerator : MonoBehaviour {
 	public float [] maxTurn; //maximum turn radius in degrees, probably set to < 20
 	public float [] branchChance; //chance of branching at a segment
 	public float [] branchDeviation; //amount branch-trunk angle will deviate from 90
+	public float [] leafSizeRange; //min and max of absolute size for leaf "balls"
+
 	public GameObject branch;
 	public Mesh mfMesh;
-	public List <Vector3> tips = new List<Vector3> ();
+	//hashses position of branch tips to direction
 
+	public Dictionary <Vector3, Vector3> tips = new Dictionary<Vector3, Vector3> ();
 	private Octree collisionTree;
 	private Mesh mesh;
 	private int center; //center of faces
@@ -239,7 +242,7 @@ public class TreeGenerator : MonoBehaviour {
 		mesh.vertices = newVertices;
 		mesh.triangles = newTriangles;
 
-		tips.Add (gameObject.transform.TransformPoint (centerCoords));
+		tips.Add (gameObject.transform.TransformPoint (centerCoords), dir);
 	}
 
 	private Vector3 RandomNormalCurveVector (float range) {
