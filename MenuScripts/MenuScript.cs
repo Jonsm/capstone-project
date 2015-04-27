@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR_WIN
+using UnityEngine;
 using UnityEngine.UI;
 using System;
 using System.Collections;
@@ -198,5 +199,5 @@ public class MenuScript : MonoBehaviour {
 		return false;
 	}
 */
-
+#endif
 

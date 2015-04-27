@@ -131,7 +131,6 @@ public class CubeThreader {
 				}
 			}
 		}
-		
 		//find the geometry
 		for (int x = range [0][0]; x < range [0][1]; x++) {
 			for (int y = range [1][0]; y < range [1][1]; y++) {
@@ -150,6 +149,7 @@ public class CubeThreader {
 			vertices[p] = vert;
 			generated [p] = true;
 		}
+		Debug.Log ("done");
 	}
 	//generates geometry for a single cube with lower, back, left corner at pos
 	int MCube (object posI, Vector2 position ,int currPos,Dictionary<Vector3,float> iso,Dictionary<Vector3,int> ind,List<Vector3> vert,List<int> tri ) {
@@ -166,7 +166,7 @@ public class CubeThreader {
 		for (int i = 0; i < corners.Length; i++) {
 			if ( iso[corners [i]] < surface) cubeIndex |= (1 << i);
 		}
-
+		
 		//figure out what edges are being intersected and place vertices along the edges
 		if ((edgeTable [cubeIndex] & 1) != 0) vertList [0] = VertexInterp (corners [0], corners [1],(iso));
 		if ((edgeTable [cubeIndex] & 2) != 0) vertList [1] = VertexInterp (corners [1], corners [2],(iso));
@@ -182,7 +182,7 @@ public class CubeThreader {
 		if ((edgeTable [cubeIndex] & 512) != 0) vertList [9] = VertexInterp (corners [1], corners [5],iso);
 		if ((edgeTable [cubeIndex] & 1024) != 0) vertList [10] = VertexInterp (corners [2], corners [6],iso);
 		if ((edgeTable [cubeIndex] & 2048) != 0) vertList [11] = VertexInterp (corners [3], corners [7],iso);
-
+		
 		//create the geometry
 		for (int i = 0; triTable [cubeIndex][i] != -1; i += 3) {
 			for (int j = 0; j < 3; j++) {
@@ -197,7 +197,6 @@ public class CubeThreader {
 				}
 			}
 		}
-
 		return currPos;
 
 		/*if (isoValues [pos] < surface) cubeIndex |= 1;
@@ -234,7 +233,7 @@ public class CubeThreader {
 	float Sphere (Vector3 pos) {
 		return pos.sqrMagnitude;
 	}
-	float mod_curr(int i,Vector3 pos){
+	/*float mod_curr(int i,Vector3 pos){
 		float mod = equil1;
 
 		//Takes the min if position is less then the minimum and creates step
@@ -272,14 +271,16 @@ public class CubeThreader {
 
 		//modTemp = mod;
 		return mod;
-	}
+	}*/
 	
 	float TerrainPlane (Vector3 pos, Generator g) {
 		//Calls the mod functions on each of these
-		float modA = mod_curr(1,pos);
+		/*float modA = mod_curr(1,pos);
 		float modB = mod_curr(2,pos);
-		float modC = mod_curr(3,pos);
-		return (modA *.5f * pos.y + 5 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
+		float modC = mod_curr(3,pos);*/
+		float modB = 1;
+		float modC = 1;
+		return (pos.y + 5 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
 			+ (modB * g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
 				+ (modC * .5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5));
 	}

@@ -76,7 +76,7 @@ public class CubeManager : MonoBehaviour {
 	}
 
 	IEnumerator cube_Gen(Vector2 posit){
-		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.01f);
+		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.1f);
 		GameObject cube = Instantiate(object_prefab);
 		List<int> tris = new List<int> ();
 		List<Vector3> vert = new List<Vector3> ();
@@ -90,7 +90,7 @@ public class CubeManager : MonoBehaviour {
 	}
 
 	//Needs to scan around the player creating a circle around them 
-	void CheckAround(){
+	/*void CheckAround(){
 		player = Camera.main.transform.position/(cubeSize*2*size);
 		bool up = false;
 		Debug.Log (player);
@@ -133,7 +133,7 @@ public class CubeManager : MonoBehaviour {
 			if((bool)cubes[posit] == false){
 				StartCoroutine(cube_Gen(posit));
 			}
-		}*/
+		}
 		//Need to Check out the cubes around him and for each integer that it goes up by check
-	}
+	}*/
 }
