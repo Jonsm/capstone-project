@@ -8,10 +8,9 @@ public class MusicReader : MonoBehaviour {
 	public AudioSource source;
 	public GameObject indicator;
 	public GameObject indicator2;
+	public GameObject shaders;
 
 	private float startTime;
-	private Color volumeColor;
-	private Color lastVolumeColor;
 
 	void Start () {
 		startTime = Time.time;
@@ -23,12 +22,8 @@ public class MusicReader : MonoBehaviour {
 		//StartCoroutine (DebugBPF (sa));
 		StartCoroutine (DebugBeats (sa));
 		//StartCoroutine (DebugFreqs (sa));
-		//StartCoroutine (TestGenre ());
+		StartCoroutine (TestGenre ());
 		StartCoroutine (TestVolumeTexture (sa));
-	}
-
-	void Update () {
-		
 	}
 
 	//flashes indicator along with beat
@@ -90,20 +85,12 @@ public class MusicReader : MonoBehaviour {
 	}
 
 	IEnumerator TestVolumeTexture (SpectrumAnalyzer sa) {
+		SongGenre sg = gameObject.GetComponent <SongGenre> () as SongGenre;
+		yield return StartCoroutine(sg.Request ("Assets/Binaries/SampleSongs/Darude-Sandstorm (www.myfreemusic.cc).mp3"));
 		while (!sa.done) yield return new WaitForSeconds (.01f);
-		Debug.Log (sa.charPitches.Length);
+		ShaderManager sm = shaders.GetComponent <ShaderManager> () as ShaderManager;
+		sm.Begin (sg.genre, sa);
 
-		yield return new WaitForSeconds (sa.sampleTime / 2);
-		foreach (float f in sa.volumes) {
-			Debug.Log (f);
-			yield return new WaitForSeconds (sa.sampleTime);
-		}
-		yield return null;
-	}
-
-	Color VolumeToColor (SpectrumAnalyzer sa) {
-
-		return Color.black;
 	}
 
 	/*
