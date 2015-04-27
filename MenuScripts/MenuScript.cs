@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR_WIN
+using UnityEngine;
 using UnityEngine.UI;
 using System;
 using System.Collections;
@@ -141,5 +142,72 @@ public class MenuScript : MonoBehaviour {
 	}
 
 }
+<<<<<<< HEAD
 
+=======
+	/*
+	private void LoadAudio()
+	{			
+		byte[] songData;
+		songData = File.ReadAllBytes(pathName);
+
+		if (!LoadAudioFromData(songData))
+		{
+			UnityEngine.Debug.LogError("Could not load");
+			return;
+		}
+			
+		mWaveOutDevice.Play();
+		Resources.UnloadUnusedAssets();
+
+	}
+
+	private void UnloadAudio()
+	{
+		if (mWaveOutDevice != null)
+		{
+			mWaveOutDevice.Stop();
+		}
+		if (mMainOutputStream != null)
+		{
+			// this one really closes the file and ACM conversion
+			mVolumeStream.Close();
+			mVolumeStream = null;
+			
+			// this one does the metering stream
+			mMainOutputStream.Close();
+			mMainOutputStream = null;
+		}
+		if (mWaveOutDevice != null)
+		{
+			mWaveOutDevice.Dispose();
+			mWaveOutDevice = null;
+		}
+	}
+	*/
+
+	/*
+	private bool LoadAudioFromData(byte[] data)
+	{
+		try
+		{
+			MemoryStream tmpStr = new MemoryStream(data);
+			mMainOutputStream = new Mp3FileReader(tmpStr);
+			mVolumeStream = new WaveChannel32(mMainOutputStream);
+			
+			mWaveOutDevice = new WaveOut();
+			mWaveOutDevice.Init(mVolumeStream);
+			
+			return true;
+		}
+		catch (System.Exception ex)
+		{
+			UnityEngine.Debug.LogWarning("Error! " + ex.Message);
+		}
+		
+		return false;
+	}
+*/
+#endif
+>>>>>>> ccf3b986a27d0b8bc1edf1b04a10545bba4e2fca
 
