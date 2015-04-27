@@ -5,6 +5,7 @@ using System.IO;
 
 public class SongGenre : MonoBehaviour {
 	public string genre;
+	/*
 	
 	//getting artist and title thanks to David Peng
 	public IEnumerator Request (string path) {
@@ -34,4 +35,5 @@ public class SongGenre : MonoBehaviour {
 			yield return null;
 		}
 	}
+	*/
 }

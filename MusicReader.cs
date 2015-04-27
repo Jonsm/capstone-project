@@ -3,7 +3,8 @@ using System.Collections;
 
 [RequireComponent(typeof(AudioSource))]
 public class MusicReader : MonoBehaviour {
-	public AudioClip song;
+
+	/*public AudioClip song;
 	public AudioSource source;
 	public GameObject indicator;
 	public GameObject indicator2;
@@ -105,7 +106,8 @@ public class MusicReader : MonoBehaviour {
 		return Color.black;
 	}
 
-	/*//plays band passed clip
+	/*
+	 * //plays band passed clip
 	IEnumerator DebugBPF (SpectrumAnalyzer sa) {
 		while (!sa.done) yield return new WaitForSeconds (.01f);
 		AudioClip copy = Instantiate (song) as AudioClip;

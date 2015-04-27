@@ -142,6 +142,8 @@ public class MenuScript : MonoBehaviour {
 	}
 
 }
+#endif
+/*
 <<<<<<< HEAD
 
 =======
@@ -207,7 +209,8 @@ public class MenuScript : MonoBehaviour {
 		
 		return false;
 	}
-*/
+*/ /*
 #endif
 >>>>>>> ccf3b986a27d0b8bc1edf1b04a10545bba4e2fca
+	*/
 
