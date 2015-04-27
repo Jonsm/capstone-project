@@ -10,13 +10,17 @@ using NAudio.Wave;
 
 
 public class MenuScript : MonoBehaviour {
-
+	//Need Tree, Building, CubeManager prefabs
 	public GameObject explorer;
-	public GameObject music;
+	public GameObject cubeManager;
+	public GameObject trees;
+	public GameObject buildings;
+
 	public Canvas quitMenu;
 	public Button startText;
 	public Button exitText;
-	public bool songUp = false;
+
+	private bool songUp = false;
 	private string pathName = "";
 	private GameObject mp3;
 	private bool up = false;
@@ -43,9 +47,9 @@ public class MenuScript : MonoBehaviour {
 		startText = startText.GetComponent<Button> ();
 		exitText = exitText.GetComponent<Button> ();
 	}
-
+	//Calls the main Manager that starts the level
 	public void StartLevel(){
-		new MainManager (song);
+		new MainManager (song,cubeManager,trees,buildings);
 		//Application.LoadLevel (1);
 	}
 	
@@ -86,6 +90,7 @@ public class MenuScript : MonoBehaviour {
 				pathName = mp3.GetComponent<Mp3FileFinder>().m_mp3Path;
 				path = true;
 				UnityEngine.Debug.Log (pathName);
+
 			}
 		}
 		if(path == true && done == false){
@@ -102,10 +107,11 @@ public class MenuScript : MonoBehaviour {
 		char[] chars = new char[3] {pathName[pathName.Length - 3], pathName[pathName.Length - 2], pathName[pathName.Length - 1]};
 	
 		string ext = new string(chars);
-	
+		
 		if(pathName[pathName.Length - 3] == "mp3"[0])
 		{
 			Directory.CreateDirectory(System.IO.Path.GetTempPath() + @"\MusicalDefense");
+
 			Mp3ToWav(pathName, System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong.wav");
 			ext = "wav";
 		}
@@ -136,6 +142,9 @@ public class MenuScript : MonoBehaviour {
 	}
 
 }
+<<<<<<< HEAD
+
+=======
 	/*
 	private void LoadAudio()
 	{			
@@ -200,4 +209,5 @@ public class MenuScript : MonoBehaviour {
 	}
 */
 #endif
+>>>>>>> ccf3b986a27d0b8bc1edf1b04a10545bba4e2fca
 

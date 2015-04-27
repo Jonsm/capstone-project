@@ -14,21 +14,23 @@ public class CubeManager : MonoBehaviour {
 	public float surface = 1; //cutoff value of isosurface
 	public int max = 15;
 	public int min = -5;
-	public float mod1_min = 1;
-	public float mod1_max = 1;
-	public float mod1_change = 0;
-	public float mod1_end = 0;
-	public float mod2_min = 1;
-	public float mod2_max = 1;
-	public float mod2_change = 0;
-	public float mod2_end = 0;
-	public float mod3_min = 1;
-	public float mod3_max = 1;
-	public float mod3_change = 0;
-	public float mod3_end = 0;
+	public float max_noise = 10;
+	public float min_noise = .5f;
 	public float equilibrium;
+	public bool done = false;
+	public bool caves = false;
+	public Hashtable perlinNoises = new Hashtable();
 	static int count = 0;
-	private int [][] range = {new int[] {-10,10}, new int[] {-5,15}, new int[] {-10,10}};
+	public List<GameObject> cubeList;
+	public int y_min = -5;
+	public int y_max = 15;
+	public GameObject TreeBuilding;
+	public GameObject tree;
+	public GameObject building;
+	public int treeDensity;
+	public int buildingDensity;
+
+	private int [][] range = {new int[] {-10,10}, new int[] {0,25}, new int[] {-10,10}};
 	private int cube_count = 0;
 	private Vector3 player = new Vector3 (0f, 0f, 0f);
 	private int curr_x = 0;
@@ -40,17 +42,15 @@ public class CubeManager : MonoBehaviour {
 	private Hashtable cubes = new Hashtable();
 	private System.Object lock_obj = new System.Object();
 	// Use this for initialization
-	void Start () {
+	void Start() {
+		range [1] = new int[]{y_min, y_max};
 		if (size <= 0) size = 10;
 		//Generator s = new ValueNoise(Random.Range (-9000, 9000), null); 
 		//int [] [] r = {new int[] {-size,size}, new int[] {-min,max}, new int[] {-size,size}};
 		//range = r;
 		Generator s = new GradientNoise (UnityEngine.Random.Range (-9000,9000));
 
-		a = new CubeThreader (cubeSize, s,range,surface,size,
-		                      mod1_min,mod1_max,mod1_change,mod1_end,
-		                      mod2_min,mod2_max, mod2_change,mod2_end,
-		                      mod3_min,mod3_max, mod3_change,mod3_end,equilibrium);
+		a = new CubeThreader (cubeSize, s,range,surface,size,equilibrium,max,min,caves);
 
 		//Creates numCubes new marching cubes and adds them to the list
 		for (int i = -4; i < 5; i++) {
@@ -71,69 +71,35 @@ public class CubeManager : MonoBehaviour {
 				StartCoroutine(cube_Gen(posit));
 			}
 		}
+
+		//this.GetComponent<MeshRenderer> ().material.SetColor ("_Color", Color.red);
+		StartCoroutine(wait ());
 		//InvokeRepeating ("CheckAround", 10.0f, .5f);
+		perlinNoises = a.noises;
+
 
 	}
+	IEnumerator wait(){
+		while (cubeList.Count < 81)
+				yield return new WaitForSeconds (0.1f);
 
-	IEnumerator cube_Gen(Vector2 posit){
-		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.1f);
-		GameObject cube = Instantiate(object_prefab);
-		List<int> tris = new List<int> ();
-		List<Vector3> vert = new List<Vector3> ();
-		lock(lock_obj){
-			tris = (List<int>)a.triangle[posit];
-			vert = (List<Vector3>)a.vertices[posit];
-		}
-		cube.GetComponent<MarchingCubes>().Go(tris,vert);
-		cubes[posit] = true;
 		yield return null;
 	}
 
-	//Needs to scan around the player creating a circle around them 
-	/*void CheckAround(){
-		player = Camera.main.transform.position/(cubeSize*2*size);
-		bool up = false;
-		Debug.Log (player);
-		/*
-		if (Math.Floor((double)player.x) != curr_x) {
-			for (int i = -1; i < 1; i++) {
-				for (int j = -1; j < 1; j++){
-					if(!cubes.ContainsKey(new Vector2(curr_x+i,curr_z+j))){
-						up = true;
-						Vector2 p = new Vector2 ( curr_x + i,curr_z + j);
-						cubes.Add (p,false);
-						a.addCubes(p);	
-						Debug.Log ("x");
-					}
-				
-				}
-			}
-			curr_x =(int) Math.Floor((double)player.x);
-		}
-		if (Math.Floor ((double)player.z) != curr_z) {
-			for (int i = -1; i < 1; i++) {
-				for (int j = -1; j < 1; j++){
-					if(!cubes.ContainsKey(new Vector2(curr_x+i,curr_z+j))){
-						up = true;
-						Vector2 p = new Vector2 (curr_x + i,curr_z + j);
-						cubes.Add (p,false);
-						a.addCubes(p);	
-					}	
-				}
-			}
-			curr_z = (int)Math.Floor((double)player.z);
-		}
-
-		if (up == true) {
-			a.Run ();
-			up = false;
-		}
-
-		foreach (Vector2 posit in cubes.Keys) {
-			if((bool)cubes[posit] == false){
-				StartCoroutine(cube_Gen(posit));
-			}
-		}
-		//Need to Check out the cubes around him and for each integer that it goes up by check
-	}*/
+	IEnumerator cube_Gen(Vector2 posit){
+		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.01f);
+		GameObject cube = Instantiate(object_prefab);
+		List<int> tris = new List<int> ();
+		List<Vector3> vert = new List<Vector3> ();
+		tris = (List<int>)a.triangle[posit];
+		vert = (List<Vector3>)a.vertices[posit];
+		cubeList.Add (cube);
+		cube.GetComponent<MarchingCubes>().Go(tris,vert);
+		cube.transform.parent = gameObject.transform;
+		GameObject treeBuild = Instantiate(TreeBuilding);
+		TreeAndBuilding t = treeBuild.GetComponent<TreeAndBuilding> () as TreeAndBuilding;
+		t.Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], treeDensity,buildingDensity,cube,tree,building,cubeSize);
+		cubes[posit] = true;
+		yield return null;
+	}
 }

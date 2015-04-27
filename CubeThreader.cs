@@ -14,34 +14,21 @@ public class CubeThreader {
 	public float surface; //cutoff value of isosurface
 	public bool smoothShade;
 	public bool done = false;
-	private float mod2 = 1;
-	private float mod3 = 1;
-	private float mod1_min = 1;
 	private float equil1 = 3;
-	private float mod1_max =1;
-	private float pos1_min =0;
-	private float pos1_max = 0;
-	private float mod2_min =1;
-	private float mod2_max =1;
-	private float pos2_min =0;
-	private float pos2_max = 0;
-	private float mod3_min =1;
-	private float mod3_max =1;
-	private float pos3_min =0;
-	private float pos3_max = 0;
-
-
+	private float max = 10;
+	private float min = .5f;
+	private bool caves = false;
 	//Error in the currPos, need to change it to the middle of the function so it works
 	//private int currPos = 0;
 	private int [][] range = {new int[] {-10,10 }, new int[] {-5,15}, new int[] {-10,10}};
 	private Generator g;
 	private int size = 10;
 	private int count = 0;
-	private float modTemp = 0;
 	public Hashtable generated = new Hashtable ();
 	private func surfaceFunc;
 	public Hashtable triangle = new Hashtable();
 	public Hashtable vertices = new Hashtable();
+	public Hashtable noises = new Hashtable ();
 	private Hashtable isoVals = new Hashtable();
 	private Hashtable indice = new Hashtable();
 	private System.Object lock_obj = new System.Object();
@@ -50,29 +37,15 @@ public class CubeThreader {
 	//private TriVert [] tri_vert = new TriVert[1024];
 
 	
-	public CubeThreader(float cube,Generator gen, int[][] r,float surface, int sq,
-	                    float m1,float ma1,float p1, float pa1, 
-	                    float m2,float ma2,float p2, float pa2, 
-	                    float m3,float ma3,float p3, float pa3,float equilibrium){
-		mod1_min = m1;
-		mod1_max = ma1;
-		pos1_min = p1;
-		pos1_max = pa1;
-		mod2_min = m2;
-		mod2_max = ma2;
-		pos2_min = p2;
-		pos2_max = pa2;
-		mod3_min = m3;
-		mod3_max = ma3;
-		pos3_min = p3;
-		pos3_max = pa3;
+	public CubeThreader(float cube,Generator gen, int[][] r,float surface, int sq,float equilibrium,float max, float min, bool caves){
 		equil1 = equilibrium;
 		cubeSize = cube;
 		g = gen;
 		range = r;
 		this.surface = surface;
 		size = sq;
-		modTemp = 1;
+		this.caves = caves;
+
 	}
 
 	public void addCubes (Vector2 position){
@@ -82,6 +55,7 @@ public class CubeThreader {
 			isoVals.Add(position, new Dictionary<Vector3, float>());
 			indice.Add (position, new Dictionary<Vector3,int> ());
 			generated.Add (position, false);
+			noises.Add(position, new Dictionary<Vector2,float >());
 		}
 	}
 	public void Run (){
@@ -91,7 +65,10 @@ public class CubeThreader {
 
 	private void RunStart () {
 		done = false;
-		surfaceFunc = TerrainPlane;
+		if(caves)
+			surfaceFunc = TerrainCave;
+		else 
+			surfaceFunc = TerrainPlane;
 		List <Thread> threadsList = new List <Thread> ();
 		Vector2 [] Keys = new Vector2[generated.Count];;
 		generated.Keys.CopyTo (Keys, 0);
@@ -114,6 +91,7 @@ public class CubeThreader {
 		//Synchronize while reading or writing to the file
 		Dictionary<Vector3,float> iso = new Dictionary<Vector3, float> ();
 		Dictionary<Vector3,int> ind = new Dictionary<Vector3, int> ();
+		Dictionary<Vector2, float> perlinNoise = new Dictionary<Vector2, float> ();
 		List<Vector3> vert = new List<Vector3> ();
 		List<int> tri = new List<int> ();
 		func surfaceFunction = surfaceFunc;
@@ -128,9 +106,11 @@ public class CubeThreader {
 				for (int z = range [2][0]; z <= range [2][1]; z++) {
 					Vector3 pos = new Vector3 (x + position.x, y, z + position.y);
 					iso[pos] = surfaceFunction (pos,g);
+					perlinNoise[new Vector2(x,z)] = Mathf.PerlinNoise((float)x/11f,(float)z/11f);
 				}
 			}
 		}
+		
 		//find the geometry
 		for (int x = range [0][0]; x < range [0][1]; x++) {
 			for (int y = range [1][0]; y < range [1][1]; y++) {
@@ -148,8 +128,8 @@ public class CubeThreader {
 			triangle[p] = tri;
 			vertices[p] = vert;
 			generated [p] = true;
+			noises[p] = perlinNoise;
 		}
-		Debug.Log ("done");
 	}
 	//generates geometry for a single cube with lower, back, left corner at pos
 	int MCube (object posI, Vector2 position ,int currPos,Dictionary<Vector3,float> iso,Dictionary<Vector3,int> ind,List<Vector3> vert,List<int> tri ) {
@@ -166,7 +146,7 @@ public class CubeThreader {
 		for (int i = 0; i < corners.Length; i++) {
 			if ( iso[corners [i]] < surface) cubeIndex |= (1 << i);
 		}
-		
+
 		//figure out what edges are being intersected and place vertices along the edges
 		if ((edgeTable [cubeIndex] & 1) != 0) vertList [0] = VertexInterp (corners [0], corners [1],(iso));
 		if ((edgeTable [cubeIndex] & 2) != 0) vertList [1] = VertexInterp (corners [1], corners [2],(iso));
@@ -182,7 +162,7 @@ public class CubeThreader {
 		if ((edgeTable [cubeIndex] & 512) != 0) vertList [9] = VertexInterp (corners [1], corners [5],iso);
 		if ((edgeTable [cubeIndex] & 1024) != 0) vertList [10] = VertexInterp (corners [2], corners [6],iso);
 		if ((edgeTable [cubeIndex] & 2048) != 0) vertList [11] = VertexInterp (corners [3], corners [7],iso);
-		
+
 		//create the geometry
 		for (int i = 0; triTable [cubeIndex][i] != -1; i += 3) {
 			for (int j = 0; j < 3; j++) {
@@ -197,6 +177,7 @@ public class CubeThreader {
 				}
 			}
 		}
+
 		return currPos;
 
 		/*if (isoValues [pos] < surface) cubeIndex |= 1;
@@ -233,56 +214,34 @@ public class CubeThreader {
 	float Sphere (Vector3 pos) {
 		return pos.sqrMagnitude;
 	}
-	/*float mod_curr(int i,Vector3 pos){
-		float mod = equil1;
 
-		//Takes the min if position is less then the minimum and creates step
-		//Needs to have the world continue in this way for a limited amount of time
-		if (i == 1) {
-			if((pos.x  > pos1_max) && mod < mod1_max){
-				if(mod < (mod1_max *((float)(System.Math.Ceiling((double)(pos.x-pos1_max))))/20))
-					mod =(mod1_max *((float)(System.Math.Ceiling((double)(pos.x-pos1_max))))/20);
-					
-			}else if ((pos.x < pos1_min)&& mod > mod1_min){
-				if(mod > mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
-					mod = mod1_min *(mod*20/((float)(System.Math.Ceiling((double)(pos1_min - pos.x)))));
-			}	
-		}
-		else if (i == 2) {
-			if((pos.z  > pos2_max) && mod < mod2_max){
-				if(mod < (mod2_max *((float)(System.Math.Ceiling((double)(pos.z-pos2_max))))/20))
-					mod =(mod2_max *((float)(System.Math.Ceiling((double)(pos.z-pos2_max))))/20);
-				
-			}else if ((pos.z < pos2_min)&& mod > mod2_min){
-				if(mod > mod2_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
-					mod = mod2_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z)))));
-			}	
-		}
-		else if (i == 3) {
-			if((pos.x  > pos3_max) && mod < mod3_max){
-				if(mod < (mod3_max *((float)(System.Math.Ceiling((double)(pos.x-pos3_max))))/20))
-					mod =(mod3_max *((float)(System.Math.Ceiling((double)(pos.x-pos3_max))))/20);
-				
-			}else if ((pos.x < pos3_min)&& mod > mod3_min){
-				if(mod > mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z))))))
-					mod = mod3_min *(mod*20/((float)(System.Math.Ceiling((double)(pos2_min - pos.z)))));
-			}	
-		}
+	float TerrainPlane(Vector3 pos, Generator g){
+		float modA = Mathf.PerlinNoise(pos.x/1000,pos.z/1000); 
 
-		//modTemp = mod;
-		return mod;
-	}*/
-	
-	float TerrainPlane (Vector3 pos, Generator g) {
+		pos.y = pos.y - 10;
+		return  ((((pos.y)) + equil1 * modA * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
+		            + (g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
+		            + ((.5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5))));
+
+	}
+		
+	float TerrainCave (Vector3 pos, Generator g) {
 		//Calls the mod functions on each of these
-		/*float modA = mod_curr(1,pos);
-		float modB = mod_curr(2,pos);
-		float modC = mod_curr(3,pos);*/
-		float modB = 1;
-		float modC = 1;
-		return (pos.y + 5 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
-			+ (modB * g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
-				+ (modC * .5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5));
+		float modA = Mathf.PerlinNoise(pos.x/1000,pos.z/1000); 
+		float modB = Mathf.PerlinNoise(pos.x/2000,pos.z/2000);
+		float m = 20;
+
+		float c = 1;
+		if (caves)
+			c = 60;
+
+		float v = 0;
+		if (pos.y > (range [1] [1] - 10))
+			v = (m* (pos.y - (range[1][1]-10)));
+
+		return v + (((-100 / (pos.y+.01f)) + 50 * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
+		            + (modA * g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
+				+ ((.5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5))));
 	}
 	
 	//big long lookup tables
