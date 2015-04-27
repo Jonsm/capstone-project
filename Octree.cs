@@ -28,7 +28,6 @@ public class Octree {
 		//topSize = size;
 		minSize = size / (Mathf.Floor (size / resolution));
 		dim = (int) (size / minSize);
-		Debug.Log (dim);
 		tree = new List <VectorSet> [(int) Mathf.Pow (dim, 3)]; 
 	}
 

@@ -101,13 +101,20 @@ public class TreeGenerator : MonoBehaviour {
 	}
 
 	//grows the branch
-	public void Grow () {
+	/*public void Grow () {
 		Vector3 [] parameters = new Vector3 [] {new Vector3 (0, segmentLength [0], 0),
 			new Vector3 (widthLossFactor, 0, 0)};
 		float currRadius = radius [0] - widthLossFactor;
 
 		for (int i = 0; i < segments [0] - 1; i++) {
 			//rotate by a random amount
+			bool a = false;
+
+			if ( i == segments[0] - 2)
+				a = true;
+
+			StartCoroutine(growHelp(parameters, currRadius,i, a));
+			/*
 			Vector3 rotVector = RandomNormalCurveVector (maxTurn [0]);
 			Quaternion rotation = Quaternion.Euler (rotVector);
 			parameters [0] = rotation * parameters [0];
@@ -120,17 +127,53 @@ public class TreeGenerator : MonoBehaviour {
 			Extruder.Extrude (mesh, faces, false, Extruder.ExtrudeRotate, parameters, false);
 
 			currRadius -= widthLossFactor;
+
 			float willBranch = Random.Range (0f, 1f);
 			if (willBranch < branchChance [0] && i != segments [0] - 2 && segments [0] > 2) {;
 				MakeNewBranch (gameObject.transform.TransformPoint (mesh.vertices [center]), 
 				               parameters [0], .9f * currRadius, i + 1);
 			}
-		}
-
+			*/
+	/*	}
 		SharpenPoint (parameters [0]);
 
 		mesh.RecalculateNormals ();
 		mesh.RecalculateBounds ();
+	}*/
+	public IEnumerator Grow(){
+		Vector3 [] parameters = new Vector3 [] {new Vector3 (0, segmentLength [0], 0),
+			new Vector3 (widthLossFactor, 0, 0)};
+		float currRadius = radius [0] - widthLossFactor;
+		
+		for (int i = 0; i < segments [0] - 1; i++) {
+			//rotate by a random amount
+
+			Vector3 rotVector = RandomNormalCurveVector (maxTurn [0]);
+			Quaternion rotation = Quaternion.Euler (rotVector);
+			parameters [0] = rotation * parameters [0];
+
+			//rotate upward
+			Vector3 localY = gameObject.transform.InverseTransformVector (Vector3.up);
+			float rad = Random.Range (0, upCurve [0]) * Mathf.PI / 180;
+			parameters [0] = Vector3.RotateTowards (parameters [0], localY, rad, 0);
+
+			Extruder.Extrude (mesh, faces, false, Extruder.ExtrudeRotate, parameters, false);
+
+			currRadius -= widthLossFactor;
+
+			float willBranch = Random.Range (0f, 1f);
+			if (willBranch < branchChance [0] && i != segments [0] - 2 && segments [0] > 2) {;
+				MakeNewBranch (gameObject.transform.TransformPoint (mesh.vertices [center]), 
+				               parameters [0], .9f * currRadius, i + 1);
+			}
+			yield return new WaitForSeconds(0.5f);
+		}
+		SharpenPoint (parameters [0]);
+		
+		mesh.RecalculateNormals ();
+		mesh.RecalculateBounds ();
+		yield return null;
+
 	}
 
 	private void MakeNewBranch (Vector3 pos, Vector3 dir, float rad, int segs) {

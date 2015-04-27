@@ -89,6 +89,7 @@ public class MenuScript : MonoBehaviour {
 				pathName = mp3.GetComponent<Mp3FileFinder>().m_mp3Path;
 				path = true;
 				UnityEngine.Debug.Log (pathName);
+
 			}
 		}
 		if(path == true && done == false){
@@ -105,10 +106,11 @@ public class MenuScript : MonoBehaviour {
 		char[] chars = new char[3] {pathName[pathName.Length - 3], pathName[pathName.Length - 2], pathName[pathName.Length - 1]};
 	
 		string ext = new string(chars);
-	
+		
 		if(pathName[pathName.Length - 3] == "mp3"[0])
 		{
 			Directory.CreateDirectory(System.IO.Path.GetTempPath() + @"\MusicalDefense");
+
 			Mp3ToWav(pathName, System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong.wav");
 			ext = "wav";
 		}

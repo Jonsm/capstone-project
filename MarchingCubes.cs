@@ -12,7 +12,6 @@ public class MarchingCubes : MonoBehaviour {
 
 	private List<int> triangle = new List<int> ();
 	private List<Vector3> vertice = new List<Vector3> ();
-
 	// Use this for initialization
 	public void Go (List<int> triangles,List<Vector3> vertices) {
 		Mesh mesh = gameObject.GetComponent <MeshFilter> ().mesh;
