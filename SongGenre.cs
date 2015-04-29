@@ -4,7 +4,9 @@ using System.Text.RegularExpressions;
 using System.IO;
 
 public class SongGenre : MonoBehaviour {
-	public string genre;
+	public enum Genre {Alternative, Rock, Trance, Reggae, Rap, Ambient, Folk, 
+		Electronic, Dubstep, House, Metal, Classical, Unknown};
+	public Genre genre = Genre.Unknown;
 
 	public IEnumerator Request (string path) {
 		//get artist and track title
@@ -29,9 +31,41 @@ public class SongGenre : MonoBehaviour {
 				str1 = "\"genre\"";
 				string str2 = "\"([^\"]*)\"";
 				r = new Regex (str1 + ":" + str2);
-				genre = r.Match (str).Groups [1].Value;
+				genre = genreFromString (r.Match (str).Groups [1].Value);
 			}
 		}
 		yield return null;
+	}
+
+	private Genre genreFromString (string str) {
+		string lc = str.ToLower ();
+
+		//more specific types first
+		if (lc.Contains ("alternative") || lc.Contains ("indie"))
+			return Genre.Alternative;
+		else if (lc.Contains ("metal") || lc.Contains ("scream") || lc.Contains ("core"))
+			return Genre.Metal;
+		else if (lc.Contains ("reggae"))
+			return Genre.Reggae;
+		else if (lc.Contains ("rock"))
+			return Genre.Rock;
+		else if (lc.Contains ("trance"))
+			return Genre.Trance;
+		else if (lc.Contains ("rap") || lc.Contains ("hip hop") || lc.Contains ("hiphop"))
+			return Genre.Rap;
+		else if (lc.Contains ("ambient") || lc.Contains ("background"))
+			return Genre.Ambient;
+		else if (lc.Contains ("folk") || lc.Contains ("country") || lc.Contains ("blues"))
+			return Genre.Folk;
+		else if (lc.Contains ("house"))
+			return Genre.House;
+		else if (lc.Contains ("step") || lc.Contains ("bass") || lc.Contains ("bad"))
+			return Genre.Dubstep;
+		else if (lc.Contains ("electronic") || lc.Contains ("tech") || lc.Contains ("edm") ||
+		         lc.Contains ("dance"))
+			return Genre.Electronic;
+		else if (lc.Contains ("classic") || lc.Contains ("baroque") || lc.Contains ("romantic"))
+			return Genre.Classical;
+		else return Genre.Unknown;
 	}
 }
