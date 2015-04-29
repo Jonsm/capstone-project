@@ -24,10 +24,14 @@ public class TreeGenerator : MonoBehaviour {
 	private int center; //center of faces
 	private int [] faces; //faces of part being extruded
 	private float widthLossFactor; //amount to extrude it by
+	private static GameObject TreeContainer;
 
 	//set the trunk to the right size
 	public void Init () {
 		//add the top faces to faces and set their height
+		if (TreeContainer == null)
+			TreeContainer = new GameObject ();
+		gameObject.transform.parent = TreeContainer.transform;
 		MeshFilter mf = gameObject.GetComponent <MeshFilter> () as MeshFilter;
 		mf.mesh = mfMesh;
 		mesh = gameObject.GetComponent <MeshFilter> ().mesh;
@@ -140,6 +144,7 @@ public class TreeGenerator : MonoBehaviour {
 		mesh.RecalculateNormals ();
 		mesh.RecalculateBounds ();
 	}*/
+
 	public IEnumerator Grow(){
 		Vector3 [] parameters = new Vector3 [] {new Vector3 (0, segmentLength [0], 0),
 			new Vector3 (widthLossFactor, 0, 0)};
@@ -166,10 +171,10 @@ public class TreeGenerator : MonoBehaviour {
 				MakeNewBranch (gameObject.transform.TransformPoint (mesh.vertices [center]), 
 				               parameters [0], .9f * currRadius, i + 1);
 			}
-			yield return new WaitForSeconds(0.5f);
+
+			yield return new WaitForSeconds(0.1f);
 		}
 		SharpenPoint (parameters [0]);
-		
 		mesh.RecalculateNormals ();
 		mesh.RecalculateBounds ();
 		yield return null;
@@ -177,6 +182,7 @@ public class TreeGenerator : MonoBehaviour {
 	}
 
 	private void MakeNewBranch (Vector3 pos, Vector3 dir, float rad, int segs) {
+
 		if (rad < .05f || segments [0] - segs - segments [1] <= 0) return;
 
 		//Calculate rotation
@@ -208,7 +214,7 @@ public class TreeGenerator : MonoBehaviour {
 		tg.tips = tips;
 
 		tg.Init ();
-		tg.Grow ();
+		tg.StartCoroutine("Grow");
 	}
 
 	//takes the top face of the trunk and replaces it with a single point (like a cone)

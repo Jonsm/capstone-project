@@ -26,6 +26,7 @@ public class CubeManager : MonoBehaviour {
 	public int y_max = 15;
 	public GameObject TreeBuilding;
 	public GameObject tree;
+	private GameObject TreeBuilder;
 	public GameObject building;
 	public int treeDensity;
 	public int buildingDensity;
@@ -43,6 +44,7 @@ public class CubeManager : MonoBehaviour {
 	private System.Object lock_obj = new System.Object();
 	// Use this for initialization
 	void Start() {
+		TreeBuilder = Instantiate(TreeBuilding);
 		range [1] = new int[]{y_min, y_max};
 		if (size <= 0) size = 10;
 		//Generator s = new ValueNoise(Random.Range (-9000, 9000), null); 
@@ -96,9 +98,7 @@ public class CubeManager : MonoBehaviour {
 		cubeList.Add (cube);
 		cube.GetComponent<MarchingCubes>().Go(tris,vert);
 		cube.transform.parent = gameObject.transform;
-		GameObject treeBuild = Instantiate(TreeBuilding);
-		TreeAndBuilding t = treeBuild.GetComponent<TreeAndBuilding> () as TreeAndBuilding;
-		t.Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], treeDensity,buildingDensity,cube,tree,building,cubeSize);
+		TreeBuilder.GetComponent<TreeAndBuilding> ().Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], treeDensity,buildingDensity,cube,tree,building,cubeSize);
 		cubes[posit] = true;
 		yield return null;
 	}

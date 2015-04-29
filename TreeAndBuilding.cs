@@ -15,11 +15,14 @@ public class TreeAndBuilding : MonoBehaviour {
 	private float cubeSize;
 	private bool a = false;
 	private static GameObject TreeContainer;
+	private static GameObject BuildingContainer;
 	// Use this for initialization
 	public void Begin(Vector2 posit, Dictionary<Vector2,float> noise, int trees, int buildings,GameObject cubeObj, 
 	                  GameObject treeObj, GameObject buildingObj,float cubeSz){
 		if (TreeContainer == null)
 			TreeContainer = new GameObject ();
+		if (BuildingContainer == null)
+			BuildingContainer = new GameObject ();
 		position = posit;
 		noises = noise;
 		//float bigNoise = Mathf.PerlinNoise (posit.x, posit.y);
@@ -30,7 +33,7 @@ public class TreeAndBuilding : MonoBehaviour {
 		building = buildingObj;
 		cubeSize = cubeSz;
 		StartCoroutine ("placeTrees");
-		placeBuildings ();
+		StartCoroutine ("placeBuildings");
 
 	}
 	void makeTrees(Vector2 v){
@@ -38,9 +41,12 @@ public class TreeAndBuilding : MonoBehaviour {
 		RaycastHit hit;
 		//Debug.Log ("Here");
 		if(Physics.Raycast(new Vector3((v.x)*cubeSize + (position.x-1/2)*20*cubeSize,300f,
-		                               ((v.y)*cubeSize + (position.y-1/2)*20*cubeSize)),down,out hit)){
+		                               ((v.y)*cubeSize + (position.y-1/2)*20*cubeSize)),down,out hit)
+		  								 && (hit.collider == cube.GetComponent<Collider>() as Collider)){
 			GameObject treeLoc = Instantiate (tree);
 			TreeGenerator t = treeLoc.GetComponent<TreeGenerator> () as TreeGenerator;
+			MeshCollider c = treeLoc.GetComponent<MeshCollider> () as MeshCollider;
+			//CapsuleCollider c = treeLoc.GetComponent<CapsuleCollider>() as CapsuleCollider;
 			//Set each component of a tree and Instantiate here
 			/*
 			t.segments = new int[]{(int)Random.Range(1,5), 1};
@@ -56,6 +62,9 @@ public class TreeAndBuilding : MonoBehaviour {
 			treeLoc.GetComponent<TreeGenerator> ().Init();
 			StartCoroutine(treeLoc.GetComponent<TreeGenerator> ().Grow());
 			treeLoc.transform.parent = TreeContainer.transform;
+			treeLoc.SetActive(true);
+			c.sharedMesh = treeLoc.GetComponent<MeshFilter>().mesh;
+			//treeLoc.GetComponent<CapsuleCollider>().radius = t.
 			//t.Init ();
 			//Debug.Log ("Enter");
 		}
@@ -65,9 +74,12 @@ public class TreeAndBuilding : MonoBehaviour {
 	void makeBuildings(Vector2 v){
 		Vector3 down = transform.TransformDirection(Vector3.down);
 		RaycastHit hit;
-		if(Physics.Raycast(new Vector3(v.x,300f,v.y),down,out hit) && (hit.collider == cube.GetComponent<Collider>() as Collider)){
+		if(Physics.Raycast(new Vector3((v.x)*cubeSize + (position.x-1/2)*20*cubeSize,300f,
+		                               ((v.y)*cubeSize + (position.y-1/2)*20*cubeSize))
+		                   ,down,out hit) && (hit.collider == cube.GetComponent<Collider>() as Collider)){
 			GameObject buildingA = Instantiate (building);
-			CylBuildingMaker cbm = gameObject.GetComponent <CylBuildingMaker> () as CylBuildingMaker;
+			CylBuildingMaker cbm =  buildingA.GetComponent <CylBuildingMaker> () as CylBuildingMaker;
+			MeshCollider c = buildingA.GetComponent<MeshCollider> () as MeshCollider;
 			//Set each component of a tree and Instantiate here
 			/*cbm.faces = new int[1];
 			cbm.radius = 1;
@@ -79,8 +91,13 @@ public class TreeAndBuilding : MonoBehaviour {
 			cbm.maxRad = new float[1];
 			cbm.windowHeight = 1;
 			cbm.windowInset = 1;*/
-			//building.transform.parent = buildingParent.transform;
-			cbm.BuildMe ();
+			//building.transform.parent = buildingParent.transform
+		
+			cbm.BuildMe();
+			buildingA.transform.parent = BuildingContainer.transform;
+			buildingA.transform.position = hit.point;
+			buildingA.SetActive(true);
+			c.sharedMesh = buildingA.GetComponent<MeshFilter> ().mesh;
 		}
 	}
 
@@ -101,14 +118,16 @@ public class TreeAndBuilding : MonoBehaviour {
 	}
 
 	IEnumerator placeBuildings(){
+		//Keep track of other ones close by
 		for (int i = 0; i < 50; i ++) {
 			Vector2 v = new Vector2(Random.Range(-10,10),
 			                        Random.Range(-10,10));
 			float x = Mathf.RoundToInt(v.x);
 			float z = Mathf.RoundToInt(v.y);
 			
-			if(noises[new Vector2(x, z)] > .82f){
+			if(noises[new Vector2(x, z)] <.25f &&  noises[new Vector2(x, z)] >.22f){
 				makeBuildings(v);
+				yield return new WaitForSeconds(.05f);
 			}
 		}
 		yield return null;
