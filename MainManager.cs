@@ -15,10 +15,10 @@ public class MainManager : MonoBehaviour {
 
 	private SortedDictionary<float,float> bpm;
 
-	private float hueRange;
-	private float baseHue;
-	private float minSat;
-	private float maxSat;
+	//private float hueRange;
+	//private float baseHue;
+	//private float minSat;
+	//private float maxSat;
 	private float minVal;
 	private float maxVal;
 	private float treeMax;
@@ -36,15 +36,15 @@ public class MainManager : MonoBehaviour {
 	public GameObject clouds;
 
 	public GameObject CubeGenerator;
-	private Color baseCubeColor;
+	//private Color baseCubeColor;
 
 	private GameObject treeParent;
 	public GameObject trees;
-	private Color baseTreeColor;
+	//private Color baseTreeColor;
 
 	private GameObject buildingParent;
 	public GameObject buildings;
-	private Color baseBuildingColor;
+	//private Color baseBuildingColor;
 	
 
 
@@ -102,9 +102,9 @@ public class MainManager : MonoBehaviour {
 
 
 	void Alternative(){
-		hueRange = 90;
-		minSat = .3f;
-		maxSat = .7f;
+		//hueRange = 90;
+		//minSat = .3f;
+		//maxSat = .7f;
 		minVal = .5f;
 		maxVal = .75f;
 		treeMax = 15;
@@ -113,10 +113,10 @@ public class MainManager : MonoBehaviour {
 	}
 
 	void Ambient(){
-		hueRange = 30;
-		baseHue = 240;
-		minSat = .1f;
-		maxSat = .3f;
+		//hueRange = 30;
+		//baseHue = 240;
+		//minSat = .1f;
+		//maxSat = .3f;
 		minVal = .5f;
 		maxVal = .8f;
 		treeMax = 40;
@@ -124,10 +124,10 @@ public class MainManager : MonoBehaviour {
 		treeLeaves = true;
 	}
 	void Country(){
-		hueRange = 45;
-		baseHue = 60;
-		minSat = .7f;
-		maxSat = .9f;
+//		hueRange = 45;
+//		baseHue = 60;
+//		minSat = .7f;
+//		maxSat = .9f;
 		minVal = .8f;
 		maxVal = 1;
 		treeMax = 35;
@@ -135,9 +135,9 @@ public class MainManager : MonoBehaviour {
 		treeLeaves = true;
 	}
 	void Electronic(){
-		hueRange = 360;
-		minSat = .7f;
-		maxSat = 1;
+//		hueRange = 360;
+//		minSat = .7f;
+//		maxSat = 1;
 		minVal = .8f;
 		maxVal = 1;
 		treeMax = 10;
@@ -146,9 +146,9 @@ public class MainManager : MonoBehaviour {
 	}
 
 	void Dubstep(){
-		hueRange= 120;
-		minSat = .5f;
-		maxSat = .9f;
+//		hueRange= 120;
+//		minSat = .5f;
+//		maxSat = .9f;
 		minVal = .7f;
 		maxVal = .9f;
 		treeMax = 5;
@@ -157,9 +157,9 @@ public class MainManager : MonoBehaviour {
 	}
 	
 	void House(){
-		hueRange= 120;
-		minSat = .7f;
-		maxSat = 1;
+//		hueRange= 120;
+//		minSat = .7f;
+//		maxSat = 1;
 		minVal = .4f;
 		maxVal = 1;
 		treeMax = 10;
@@ -168,9 +168,9 @@ public class MainManager : MonoBehaviour {
 
 	}
 	void Metal(){
-		hueRange= 20;
-		minSat = .3f;
-		maxSat = .4f;
+//		hueRange= 20;
+//		minSat = .3f;
+//		maxSat = .4f;
 		minVal = 0;
 		maxVal = .2f;
 		treeMax = 5;
@@ -178,9 +178,9 @@ public class MainManager : MonoBehaviour {
 		treeLeaves = false;
 	}
 	void Rap(){
-		hueRange = 10;
-		minSat = 0;
-		maxSat = .2f;
+//		hueRange = 10;
+//		minSat = 0;
+//		maxSat = .2f;
 		minVal = 0;
 		maxVal = .2f;
 		treeMax = 0;
@@ -188,9 +188,9 @@ public class MainManager : MonoBehaviour {
 		treeLeaves = false;
 	}
 	void Reggae(){
-		hueRange = 10;
-		minSat = .5f;
-		maxSat = .7f;
+//		hueRange = 10;
+//		minSat = .5f;
+//		maxSat = .7f;
 		minVal = .7f;
 		maxVal = .8f;
 		treeMax = 50;
@@ -199,9 +199,9 @@ public class MainManager : MonoBehaviour {
 	}
 
 	void Trance(){
-		hueRange= 90;
-		minSat = .4f;
-		maxSat = .8f;
+//		hueRange= 90;
+//		minSat = .4f;
+//		maxSat = .8f;
 		minVal = .4f;
 		maxVal = .8f;
 		treeMax = 50;
