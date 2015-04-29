@@ -55,7 +55,7 @@ public class CylBuildingMaker : MonoBehaviour {
 		mesh.triangles = triangles;
 		mesh.uv = uv;
 
-		AddSegments ();
+		AddSegments();
 		MakeRoof ();
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();

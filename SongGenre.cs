@@ -34,7 +34,9 @@ public class SongGenre : MonoBehaviour {
 				genre = genreFromString (r.Match (str).Groups [1].Value);
 			}
 		}
+
 		yield return null;
+
 	}
 
 	private Genre genreFromString (string str) {
@@ -68,4 +70,5 @@ public class SongGenre : MonoBehaviour {
 			return Genre.Classical;
 		else return Genre.Unknown;
 	}
+
 }

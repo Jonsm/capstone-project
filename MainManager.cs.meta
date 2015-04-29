@@ -1,10 +1,18 @@
 fileFormatVersion: 2
 guid: a54af7754a31efe4b9aa7be706d40dc2
-timeCreated: 1429726213
+timeCreated: 1430334463
 licenseType: Free
 MonoImporter:
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - waterTop: {fileID: 114616, guid: 45006aa13abba1844b309258caf6728f, type: 2}
+  - waterBottom: {fileID: 177584, guid: 95b432abfcd1e994bb4add02d5133666, type: 2}
+  - mainCamera: {fileID: 151036, guid: 8eb749e8860281a479add09e2fc3c737, type: 2}
+  - marchingCube: {fileID: 158668, guid: 3364ebd99093ac446ba579f7a2876e76, type: 2}
+  - clouds: {fileID: 155302, guid: 44c365cae2a4d1a46aa6dddd2161070c, type: 2}
+  - CubeGenerator: {fileID: 152546, guid: 8f1f3f661ca12d949a6b6048859d6680, type: 2}
+  - trees: {fileID: 192044, guid: c2b5df3ac247d9442a74effb7d83a355, type: 2}
+  - buildings: {fileID: 162336, guid: 4b2835bdb9ec4534cb8990d732100eb4, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

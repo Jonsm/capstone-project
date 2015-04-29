@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 
 public class MainManager : MonoBehaviour {
 
-	private AudioClip song;
-	private AudioSource source;
+	public AudioClip song;
+	public AudioSource source;
+	public SongGenre.Genre genre;
 	private float sampleTime; //time of each sample (for charPitches and volumes)
 	private SortedDictionary <float, float> [] bandBeats; //hashes beat time to power for each band
 	private float [] beatTotalPower; //total power for each band during beats, use to rate "matching"
@@ -21,17 +24,23 @@ public class MainManager : MonoBehaviour {
 	//private float maxSat;
 	private float minVal;
 	private float maxVal;
-	private float treeMax;
-	private float buildingMax;
+
+	//Scale of 1 to 5 as this is multiplied later on by cube size
+	private int treeMax;
+	private int treeSize;
+	private int buildingMax;
+	private int buildingSize;
 	private bool treeLeaves;
+	private bool caves = false;
 
 	private float minVol;
 	private float maxVol;
 
+
 	public GameObject waterTop;
 	public GameObject waterBottom;
 
-	public GameObject mainCamera;
+	public GameObject camera;
 	public GameObject marchingCube;
 	public GameObject clouds;
 
@@ -48,11 +57,12 @@ public class MainManager : MonoBehaviour {
 	
 
 
-	public MainManager(AudioClip a, GameObject cubeGenPre,GameObject treePre, GameObject buildingPre){
+	public MainManager(AudioClip a, GameObject cubeGenPre,GameObject treePre, GameObject buildingPre,SongGenre.Genre g){
 		song = a;
 		CubeGenerator = cubeGenPre;
 		trees = treePre;
 		buildings = buildingPre;
+		genre = g;
 	}
 	// Use this for initialization
 	void Start () {
@@ -72,32 +82,47 @@ public class MainManager : MonoBehaviour {
 		while(sa.done == false)
 			yield return new WaitForSeconds (.05f);
 
-		yield return StartCoroutine("Generate");
+		yield return  StartCoroutine("findGenre");
 
 	}
 
 	IEnumerator Generate(){
+
+		Debug.Log ("Making Cubes");
 		CubeGenerator = Instantiate (CubeGenerator);
 		CubeManager g = CubeGenerator.GetComponent<CubeManager>() as CubeManager;
+		g.buildingDensity = buildingMax;
+		g.treeDensity = treeMax;
+		g.treeLeaves = true;
+		g.treeSize = treeSize;
+		g.buildingSize = buildingSize;
+		g.caves = caves;
 		
 		//This needs to have an object prefab that has a marching cubes script sent in
 		g.object_prefab = marchingCube;
 		//Fixed
 		g.cubeSize = 20;
 		//Fix this but the equilibrium needs to be barren for certain songs not others
-		g.equilibrium = maxVol/minVol;
+		g.equilibrium = 1;
 		//Set the  surface here
 		g.surface = 1;
 		//Set size to 10 
 		g.size = 10;
+	
+		g.Begin ();
 		//Set if the terrain turns to cave or flat and where it happens within the range next
 		//mod 1 is in x direction mod 2 is z mod 3 is x as well
-
-
 		while (g.done == false)
-			yield return new WaitForSeconds(.05f);
+			yield return new WaitForSeconds(2.0f);
 
-		yield return  StartCoroutine("findGenre");
+
+		Debug.Log ("cam");
+		GameObject cam= Instantiate (camera);
+		Vector3 down = transform.TransformDirection(Vector3.down);
+		RaycastHit hit;
+		Physics.Raycast(new Vector3(0,500f,0),down,out hit);
+		cam.transform.position = new Vector3 (hit.point.x, hit.point.y + 5, hit.point.z);
+		yield return null;
 	}
 
 
@@ -107,8 +132,10 @@ public class MainManager : MonoBehaviour {
 		//maxSat = .7f;
 		minVal = .5f;
 		maxVal = .75f;
-		treeMax = 15;
-		buildingMax = 20;
+		treeMax = 2;
+		treeSize = 2;
+		buildingMax = 2;
+		buildingSize = 2;
 		treeLeaves = true;
 	}
 
@@ -119,8 +146,10 @@ public class MainManager : MonoBehaviour {
 		//maxSat = .3f;
 		minVal = .5f;
 		maxVal = .8f;
-		treeMax = 40;
+		treeMax = 3;
+		treeSize = 5;
 		buildingMax = 1;
+		buildingSize = 5;
 		treeLeaves = true;
 	}
 	void Country(){
@@ -130,8 +159,10 @@ public class MainManager : MonoBehaviour {
 //		maxSat = .9f;
 		minVal = .8f;
 		maxVal = 1;
-		treeMax = 35;
-		buildingMax = 5;
+		treeMax = 3;
+		treeSize = 3;
+		buildingMax = 1;
+		buildingSize = 1;
 		treeLeaves = true;
 	}
 	void Electronic(){
@@ -140,8 +171,10 @@ public class MainManager : MonoBehaviour {
 //		maxSat = 1;
 		minVal = .8f;
 		maxVal = 1;
-		treeMax = 10;
-		buildingMax = 35;
+		treeMax = 1;
+		treeSize = 1;
+		buildingMax = 2;
+		buildingSize = 4;
 		treeLeaves = false;
 	}
 
@@ -151,8 +184,10 @@ public class MainManager : MonoBehaviour {
 //		maxSat = .9f;
 		minVal = .7f;
 		maxVal = .9f;
-		treeMax = 5;
-		buildingMax = 40;
+		treeMax = 1;
+		treeSize = 1;
+		buildingMax = 4;
+		buildingSize = 4;
 		treeLeaves = false;
 	}
 	
@@ -162,8 +197,10 @@ public class MainManager : MonoBehaviour {
 //		maxSat = 1;
 		minVal = .4f;
 		maxVal = 1;
-		treeMax = 10;
-		buildingMax = 25;
+		treeMax = 1;
+		treeSize = 5;
+		buildingMax = 2;
+		buildingSize = 2;
 		treeLeaves = true;
 
 	}
@@ -173,8 +210,10 @@ public class MainManager : MonoBehaviour {
 //		maxSat = .4f;
 		minVal = 0;
 		maxVal = .2f;
-		treeMax = 5;
-		buildingMax = 50;
+		treeMax = 1;
+		treeSize = 3;
+		buildingMax = 5;
+		buildingSize = 3;
 		treeLeaves = false;
 	}
 	void Rap(){
@@ -184,8 +223,11 @@ public class MainManager : MonoBehaviour {
 		minVal = 0;
 		maxVal = .2f;
 		treeMax = 0;
-		buildingMax = 40;
+		treeSize = 0;
+		buildingMax = 4;
+		buildingSize = 4;
 		treeLeaves = false;
+		caves = true;
 	}
 	void Reggae(){
 //		hueRange = 10;
@@ -193,8 +235,10 @@ public class MainManager : MonoBehaviour {
 //		maxSat = .7f;
 		minVal = .7f;
 		maxVal = .8f;
-		treeMax = 50;
-		buildingMax = 4;
+		treeMax = 5;
+		treeSize = 3;
+		buildingMax = 1;
+		buildingSize = 2;
 		treeLeaves = true;
 	}
 
@@ -204,103 +248,65 @@ public class MainManager : MonoBehaviour {
 //		maxSat = .8f;
 		minVal = .4f;
 		maxVal = .8f;
-		treeMax = 50;
+		treeMax = 5;
+		treeSize = 2;
 		buildingMax = 0;
+		buildingSize = 0;
 		treeLeaves = true;
 
 	}
 
 	IEnumerator findGenre(){
-		string gen = "";
-		switch (gen)
+
+		switch (genre)
 		{
-			case "Alternative":
+			case SongGenre.Genre.Alternative:
 				Alternative();
 				break;
-			case "Ambient":
+			case SongGenre.Genre.Ambient:
 				Ambient();
 				break;
-			case "Classical":
+			case SongGenre.Genre.Classical:
 				Ambient();
 				break;
-			case "Country":
+			case SongGenre.Genre.Folk:
 				Country();
 				break;
-			case "Dance & EDM":
+			case SongGenre.Genre.Electronic:
 				Electronic();
 				break;
-			case "Deep House":
+			case SongGenre.Genre.House:
 				House();
 				break;
-			case "Drum & Bass":
+			case SongGenre.Genre.Dubstep:
 				Dubstep();
 				break;
-			case "Dubstep":
-				Dubstep();
-				break;
-			case "Electronic":
-				Electronic();
-				break;
-			case "Folk and Singer-Songwriter":
-				Country ();
-				break;
-			case "Hip Hop & Rap":
+			case SongGenre.Genre.Rap:
 				Rap();
 				break;
-			case "House":
-				House();
-				break;
-			case "Indie":
-				House ();
-				break;
-			case "Jazz & Blues":
-				Ambient ();
-				break;
-			case "Latin":
+			case SongGenre.Genre.Reggae:
 				Reggae ();	
 				break;
-			case "Metal":
+			case SongGenre.Genre.Metal:
 				Metal();
 				break;
-			case "Piano":
-				Ambient();
+			case SongGenre.Genre.Trance:
+				Trance();
 				break;
-			case "Pop":
-				Electronic();
-				break;
-			case "R&B & Soul":
-				Reggae ();
-				break;
-			case "Reggae":
-				Reggae();
-				break;
-			case "Reggaeton":
-				Reggae();	
-				break;
-			case "Rock":
+			case SongGenre.Genre.Rock:
 				Alternative();
 				break;
-			case "Techno":
-				Electronic();
-				break;
-			case "Trance":
-				Trance();
-				break;
-			case "Trap":
-				Dubstep();
-				break;
-			case "Trip Hop":
-				Trance();
-				break;
-			case "World":
-				Country();
+			case SongGenre.Genre.Unknown: 
+				Ambient ();
 				break;
 			default:
 				Ambient();
 				break;
 		
 		}	
-		yield return null;
+
+		yield return StartCoroutine("Generate");
+
 	}
 
 	IEnumerator SetInitial(){
@@ -326,7 +332,7 @@ public class MainManager : MonoBehaviour {
 	}
 
 	void fogSet(){
-		FogControl f = mainCamera.GetComponent<FogControl> () as FogControl;
+		FogControl f = camera.GetComponent<FogControl> () as FogControl;
 		//Set whether there is fog and the color and such, can update the color if there is fog
 		f.fog = false;
 		f.fog_color = Color.gray;

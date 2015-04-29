@@ -14,13 +14,11 @@ public class CubeManager : MonoBehaviour {
 	public float surface = 1; //cutoff value of isosurface
 	public int max = 15;
 	public int min = -5;
-	public float max_noise = 10;
-	public float min_noise = .5f;
-	public float equilibrium;
+	public bool treeLeaves = false;
+	public float equilibrium = 1;
 	public bool done = false;
 	public bool caves = false;
 	public Hashtable perlinNoises = new Hashtable();
-	static int count = 0;
 	public List<GameObject> cubeList;
 	public int y_min = -5;
 	public int y_max = 15;
@@ -28,22 +26,19 @@ public class CubeManager : MonoBehaviour {
 	public GameObject tree;
 	private GameObject TreeBuilder;
 	public GameObject building;
-	public int treeDensity;
-	public int buildingDensity;
+	public int treeDensity = 0;
+	public int buildingDensity = 0;
+	public int treeSize = 0;
+	public int buildingSize = 0;
 
 	private int [][] range = {new int[] {-10,10}, new int[] {0,25}, new int[] {-10,10}};
-	private int cube_count = 0;
-	private Vector3 player = new Vector3 (0f, 0f, 0f);
-	private int curr_x = 0;
-	private int curr_z = 0;
 	private CubeThreader a;
 	public int size;
 	public bool smoothShade;
 	public GameObject object_prefab;
 	private Hashtable cubes = new Hashtable();
-	private System.Object lock_obj = new System.Object();
 	// Use this for initialization
-	void Start() {
+	public void Begin() {
 		TreeBuilder = Instantiate(TreeBuilding);
 		range [1] = new int[]{y_min, y_max};
 		if (size <= 0) size = 10;
@@ -66,6 +61,7 @@ public class CubeManager : MonoBehaviour {
 				a.addCubes(p);		
 			}
 		}
+		Debug.Log ("CubeInfo");
 		a.Run();
 		int count = 0;
 		foreach (Vector2 posit in cubes.Keys) {
@@ -84,12 +80,13 @@ public class CubeManager : MonoBehaviour {
 	IEnumerator wait(){
 		while (cubeList.Count < 81)
 				yield return new WaitForSeconds (0.1f);
-
+		done = true;
 		yield return null;
 	}
 
 	IEnumerator cube_Gen(Vector2 posit){
 		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.01f);
+		Debug.Log("A");
 		GameObject cube = Instantiate(object_prefab);
 		List<int> tris = new List<int> ();
 		List<Vector3> vert = new List<Vector3> ();
@@ -98,7 +95,10 @@ public class CubeManager : MonoBehaviour {
 		cubeList.Add (cube);
 		cube.GetComponent<MarchingCubes>().Go(tris,vert);
 		cube.transform.parent = gameObject.transform;
-		TreeBuilder.GetComponent<TreeAndBuilding> ().Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], treeDensity,buildingDensity,cube,tree,building,cubeSize);
+		TreeBuilder.GetComponent<TreeAndBuilding> ().Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], 
+		                                                treeDensity,buildingDensity,cube,tree,building,cubeSize,
+		                                             treeLeaves,treeSize,buildingSize);
+
 		cubes[posit] = true;
 		yield return null;
 	}

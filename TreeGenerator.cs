@@ -172,7 +172,7 @@ public class TreeGenerator : MonoBehaviour {
 				               parameters [0], .9f * currRadius, i + 1);
 			}
 
-			yield return new WaitForSeconds(0.1f);
+			yield return new WaitForSeconds(1.0f);
 		}
 		SharpenPoint (parameters [0]);
 		mesh.RecalculateNormals ();

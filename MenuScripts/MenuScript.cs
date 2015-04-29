@@ -8,7 +8,6 @@ using System.IO;
 using NAudio;
 using NAudio.Wave;
 
-
 public class MenuScript : MonoBehaviour {
 	//Need Tree, Building, CubeManager prefabs
 	public GameObject explorer;
@@ -20,6 +19,7 @@ public class MenuScript : MonoBehaviour {
 	public Button startText;
 	public Button exitText;
 
+	private SongGenre.Genre genre;
 	private bool songUp = false;
 	private string pathName = "";
 	private GameObject mp3;
@@ -49,7 +49,7 @@ public class MenuScript : MonoBehaviour {
 	}
 	//Calls the main Manager that starts the level
 	public void StartLevel(){
-		new MainManager (song,cubeManager,trees,buildings);
+		MainManager a = new MainManager (song,cubeManager,trees,buildings,genre);
 		//Application.LoadLevel (1);
 	}
 	
@@ -98,6 +98,9 @@ public class MenuScript : MonoBehaviour {
 			done = true;
 		}
 		if (done == true) {
+			SongGenre g = new SongGenre();
+			g.Request(pathName);
+			genre = g.genre;
 			StartLevel();
 		}
 	}
@@ -124,7 +127,7 @@ public class MenuScript : MonoBehaviour {
 		WWW www = new WWW("file://" + System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong." + ext);
 		AudioClip a = www.audioClip;
 	
-		while(!a.isReadyToPlay)
+		while(a.loadState != AudioDataLoadState.Loaded)
 		{
 			UnityEngine.Debug.Log("still in loop");
 			yield return www; 

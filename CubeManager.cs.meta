@@ -1,10 +1,14 @@
 fileFormatVersion: 2
 guid: 0b316621dd810b449b9af66876df7c8b
-timeCreated: 1427157821
+timeCreated: 1430340462
 licenseType: Free
 MonoImporter:
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - TreeBuilding: {fileID: 163238, guid: 764c1d16505e97442ac654ad2242ce07, type: 2}
+  - tree: {fileID: 192044, guid: c2b5df3ac247d9442a74effb7d83a355, type: 2}
+  - building: {fileID: 162336, guid: 4b2835bdb9ec4534cb8990d732100eb4, type: 2}
+  - object_prefab: {fileID: 158668, guid: 3364ebd99093ac446ba579f7a2876e76, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
