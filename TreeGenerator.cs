@@ -12,19 +12,24 @@ public class TreeGenerator : MonoBehaviour {
 	public float [] maxTurn; //maximum turn radius in degrees, probably set to < 20
 	public float [] branchChance; //chance of branching at a segment
 	public float [] branchDeviation; //amount branch-trunk angle will deviate from 90
-	public float [] leafSizeRange; //min and max of absolute size for leaf "balls"
+	public float maxLeafPercent; //maximum width relative to size of base that leaves will grow
 
 	public GameObject branch;
 	public Mesh mfMesh;
-	//hashses position of branch tips to direction
 
-	public Dictionary <Vector3, Vector3> tips = new Dictionary<Vector3, Vector3> ();
-	private Octree collisionTree;
+	//hashses position of branch tips to direction
+	public Dictionary <Vector3, Vector3> points = new Dictionary<Vector3, Vector3> ();
+	//for synchronization, branches is a list of branches still generating
+	public delegate void PopTree (TreeGenerator t);
+	public event PopTree pEvent;
+	private List <TreeGenerator> branches = new List <TreeGenerator> ();
+	
 	private Mesh mesh;
 	private int center; //center of faces
 	private int [] faces; //faces of part being extruded
 	private float widthLossFactor; //amount to extrude it by
 	private static GameObject TreeContainer;
+	private static float waitTime = .2f;
 
 	//set the trunk to the right size
 	public void Init () {
@@ -97,53 +102,14 @@ public class TreeGenerator : MonoBehaviour {
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();
 
-		//make octree for collision detection (only in trunk)
-		if (collisionTree == null) {
-			Vector3 centerP = gameObject.transform.TransformVector (Vector3.up * segmentLength [0] * segments [0]);
-			collisionTree = new Octree (2 * segments [0], segmentLength [0], centerP);
+		//stuff for leaves
+		if (maxLeafPercent > 1) {
+			Vector3 pos = gameObject.transform.TransformPoint (mesh.vertices [center] + .95f * Vector3.down * segmentLength [0]);
+			Vector3 dir = gameObject.transform.TransformVector (Vector3.up);
+			points.Add (pos, dir);
 		}
+		branches.Add (this);
 	}
-
-	//grows the branch
-	/*public void Grow () {
-		Vector3 [] parameters = new Vector3 [] {new Vector3 (0, segmentLength [0], 0),
-			new Vector3 (widthLossFactor, 0, 0)};
-		float currRadius = radius [0] - widthLossFactor;
-
-		for (int i = 0; i < segments [0] - 1; i++) {
-			//rotate by a random amount
-			bool a = false;
-
-			if ( i == segments[0] - 2)
-				a = true;
-
-			StartCoroutine(growHelp(parameters, currRadius,i, a));
-			/*
-			Vector3 rotVector = RandomNormalCurveVector (maxTurn [0]);
-			Quaternion rotation = Quaternion.Euler (rotVector);
-			parameters [0] = rotation * parameters [0];
-
-			//rotate upward
-			Vector3 localY = gameObject.transform.InverseTransformVector (Vector3.up);
-			float rad = Random.Range (0, upCurve [0]) * Mathf.PI / 180;
-			parameters [0] = Vector3.RotateTowards (parameters [0], localY, rad, 0);
-
-			Extruder.Extrude (mesh, faces, false, Extruder.ExtrudeRotate, parameters, false);
-
-			currRadius -= widthLossFactor;
-
-			float willBranch = Random.Range (0f, 1f);
-			if (willBranch < branchChance [0] && i != segments [0] - 2 && segments [0] > 2) {;
-				MakeNewBranch (gameObject.transform.TransformPoint (mesh.vertices [center]), 
-				               parameters [0], .9f * currRadius, i + 1);
-			}
-			*/
-	/*	}
-		SharpenPoint (parameters [0]);
-
-		mesh.RecalculateNormals ();
-		mesh.RecalculateBounds ();
-	}*/
 
 	public IEnumerator Grow(){
 		Vector3 [] parameters = new Vector3 [] {new Vector3 (0, segmentLength [0], 0),
@@ -151,8 +117,14 @@ public class TreeGenerator : MonoBehaviour {
 		float currRadius = radius [0] - widthLossFactor;
 		
 		for (int i = 0; i < segments [0] - 1; i++) {
-			//rotate by a random amount
+			//make note for leaves
+			if (currRadius < maxLeafPercent * radius [0]) {
+				Vector3 pos = gameObject.transform.TransformPoint (mesh.vertices [center]);
+				Vector3 dir2 = gameObject.transform.TransformVector (parameters [0]);
+				points.Add (pos, Vector3.zero);
+			}
 
+			//rotate by a random amount
 			Vector3 rotVector = RandomNormalCurveVector (maxTurn [0]);
 			Quaternion rotation = Quaternion.Euler (rotVector);
 			parameters [0] = rotation * parameters [0];
@@ -172,7 +144,7 @@ public class TreeGenerator : MonoBehaviour {
 				               parameters [0], .9f * currRadius, i + 1);
 			}
 
-			yield return new WaitForSeconds(1.0f);
+			yield return new WaitForSeconds(waitTime);
 		}
 		SharpenPoint (parameters [0]);
 		mesh.RecalculateNormals ();
@@ -210,8 +182,12 @@ public class TreeGenerator : MonoBehaviour {
 		tg.branchChance = ApplyIncrements (branchChance);
 		tg.mfMesh = mfMesh;
 		tg.branchDeviation = ApplyIncrements (branchDeviation);
-		tg.collisionTree = collisionTree;
-		tg.tips = tips;
+		tg.points = points;
+		tg.maxLeafPercent = (maxLeafPercent * radius [0]) / tg.radius [0];
+
+		//synchronization
+		tg.pEvent = RemoveBranch;
+		branches.Add (tg);
 
 		tg.Init ();
 		tg.StartCoroutine("Grow");
@@ -291,7 +267,8 @@ public class TreeGenerator : MonoBehaviour {
 		mesh.vertices = newVertices;
 		mesh.triangles = newTriangles;
 
-		tips.Add (gameObject.transform.TransformPoint (centerCoords), dir);
+		points.Add (gameObject.transform.TransformPoint (centerCoords), Vector3.zero);
+		RemoveBranch (this);
 	}
 
 	private Vector3 RandomNormalCurveVector (float range) {
@@ -304,5 +281,13 @@ public class TreeGenerator : MonoBehaviour {
 
 	private float [] ApplyIncrements (float [] start) {
 		return new float [] {start [0] * (1 - start [1]), start [1]};
+	}
+
+	//removes branch from the branches list, indicating it's done.
+	private void RemoveBranch (TreeGenerator t) {
+		branches.Remove (t);
+		if (branches.Count == 0 && pEvent != null) {
+			pEvent (this);
+		}
 	}
 }

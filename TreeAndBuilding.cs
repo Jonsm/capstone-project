@@ -60,7 +60,7 @@ public class TreeAndBuilding : MonoBehaviour {
 				t.segments = new int[] {10,2};
 				t.segmentLength = new float[]{trunk*1.25f,0};
 				t.upCurve = new float[]{.97f,0};
-				t.leafSizeRange = new float[]{.1f*trunk,.25f*trunk};
+				//t.leafSizeRange = new float[]{.1f*trunk,.25f*trunk};
 			}else{
 				//float trunk = (float)Random.Range(cubeSize*treeSize/3,cubeSize*treeSize);
 				//t.radius = new float[]{trunk,0};

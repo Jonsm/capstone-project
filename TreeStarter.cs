@@ -13,9 +13,14 @@ public class TreeStarter : MonoBehaviour {
 	void Update () {
 		if (Input.GetKeyDown ("up")) {
 			tg.Init ();
-			tg.Grow ();
-			tl.tg = tg;
-			tl.MakeLikeATree ();
+			tg.pEvent += MakeLeaves;
+			StartCoroutine(tg.Grow ());
 		}
+	}
+
+	void MakeLeaves (TreeGenerator tg) {
+		Debug.Log ("done");
+		tl.tg = tg;
+		tl.MakeLikeATree ();
 	}
 }
