@@ -3,7 +3,7 @@ using System.Collections;
 
 public class TreeStarter : MonoBehaviour {
 	// Use this for initialization
-	TreeGenerator tg;
+	/*TreeGenerator tg;
 	TreeLeaves tl;
 	void Start () {
 		tg = gameObject.GetComponent <TreeGenerator> () as TreeGenerator;
@@ -22,5 +22,5 @@ public class TreeStarter : MonoBehaviour {
 		Debug.Log ("done");
 		tl.tg = tg;
 		tl.MakeLikeATree ();
-	}
+	}*/
 }

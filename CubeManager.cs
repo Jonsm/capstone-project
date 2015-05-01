@@ -12,6 +12,7 @@ public class CubeManager : MonoBehaviour {
 	
 	public float cubeSize = .5f; //size of each cube
 	public float surface = 1; //cutoff value of isosurface
+	public int size = 1;
 	public int max = 15;
 	public int min = -5;
 	public bool treeLeaves = false;
@@ -30,10 +31,10 @@ public class CubeManager : MonoBehaviour {
 	public int buildingDensity = 0;
 	public int treeSize = 0;
 	public int buildingSize = 0;
+	public float leaf_density = 0;
 
 	private int [][] range = {new int[] {-10,10}, new int[] {0,25}, new int[] {-10,10}};
 	private CubeThreader a;
-	public int size;
 	public bool smoothShade;
 	public GameObject object_prefab;
 	private Hashtable cubes = new Hashtable();
@@ -50,8 +51,8 @@ public class CubeManager : MonoBehaviour {
 		a = new CubeThreader (cubeSize, s,range,surface,size,equilibrium,max,min,caves);
 
 		//Creates numCubes new marching cubes and adds them to the list
-		for (int i = -4; i < 5; i++) {
-			for (int j = -4; j < 5; j++){
+		for (int i = 0; i < size; i++) {
+			for (int j = 0; j < size; j++){
 				//Each cube should have a range of 30x30, with the cubes centered appropriately based on cubeNumber
 				//Height limits can be changed but for now are constant
 				//Range is not shifting properly when multiplied by i and j, it doent change inside range
@@ -78,7 +79,7 @@ public class CubeManager : MonoBehaviour {
 
 	}
 	IEnumerator wait(){
-		while (cubeList.Count < 81)
+		while (cubeList.Count < size*size)
 				yield return new WaitForSeconds (0.1f);
 		done = true;
 		yield return null;
@@ -86,7 +87,6 @@ public class CubeManager : MonoBehaviour {
 
 	IEnumerator cube_Gen(Vector2 posit){
 		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.01f);
-		Debug.Log("A");
 		GameObject cube = Instantiate(object_prefab);
 		List<int> tris = new List<int> ();
 		List<Vector3> vert = new List<Vector3> ();
@@ -97,7 +97,7 @@ public class CubeManager : MonoBehaviour {
 		cube.transform.parent = gameObject.transform;
 		TreeBuilder.GetComponent<TreeAndBuilding> ().Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], 
 		                                                treeDensity,buildingDensity,cube,tree,building,cubeSize,
-		                                             treeLeaves,treeSize,buildingSize);
+		                                             treeLeaves,treeSize,buildingSize,leaf_density);
 
 		cubes[posit] = true;
 		yield return null;

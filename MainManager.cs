@@ -6,15 +6,18 @@ using System.IO;
 
 public class MainManager : MonoBehaviour {
 
-	public AudioClip song;
+
 	public AudioSource source;
-	public SongGenre.Genre genre;
+	public SongGenre getGenre;
+	public AudioClip song;
+	private SongGenre.Genre genre;
 	private float sampleTime; //time of each sample (for charPitches and volumes)
 	private SortedDictionary <float, float> [] bandBeats; //hashes beat time to power for each band
 	private float [] beatTotalPower; //total power for each band during beats, use to rate "matching"
 	private float [] charPitches; //list of characteristic pitches for each sample
 	private float [] volumes; //list of voumes for each sample
 	private bool done = false;
+	public static String pathName;
 
 	private SortedDictionary<float,float> bpm;
 
@@ -28,6 +31,7 @@ public class MainManager : MonoBehaviour {
 	//Scale of 1 to 5 as this is multiplied later on by cube size
 	private int treeMax;
 	private int treeSize;
+	private float leaf_density;
 	private int buildingMax;
 	private int buildingSize;
 	private bool treeLeaves;
@@ -54,16 +58,10 @@ public class MainManager : MonoBehaviour {
 	private GameObject buildingParent;
 	public GameObject buildings;
 	//private Color baseBuildingColor;
-	
 
+	public GameObject RainObject;
+	private bool rain;
 
-	public MainManager(AudioClip a, GameObject cubeGenPre,GameObject treePre, GameObject buildingPre,SongGenre.Genre g){
-		song = a;
-		CubeGenerator = cubeGenPre;
-		trees = treePre;
-		buildings = buildingPre;
-		genre = g;
-	}
 	// Use this for initialization
 	void Start () {
 		StartCoroutine ("Spectrum");
@@ -74,14 +72,14 @@ public class MainManager : MonoBehaviour {
 		song.GetData (data, 0);
 		SpectrumAnalyzer sa = new SpectrumAnalyzer (data, song.length);
 		sa.Run ();
+		while(sa.done == false)
+			yield return new WaitForSeconds (.05f);
+
 		sampleTime = sa.sampleTime;
 		bandBeats = sa.bandBeats;
 		beatTotalPower = sa.beatTotalPower;
 		charPitches = sa.charPitches;
 		volumes = sa.volumes;
-		while(sa.done == false)
-			yield return new WaitForSeconds (.05f);
-
 		yield return  StartCoroutine("findGenre");
 
 	}
@@ -108,20 +106,55 @@ public class MainManager : MonoBehaviour {
 		g.surface = 1;
 		//Set size to 10 
 		g.size = 10;
+		g.leaf_density = leaf_density;
 	
 		g.Begin ();
 		//Set if the terrain turns to cave or flat and where it happens within the range next
 		//mod 1 is in x direction mod 2 is z mod 3 is x as well
 		while (g.done == false)
-			yield return new WaitForSeconds(2.0f);
+			yield return new WaitForSeconds(.02f);
 
+		yield return StartCoroutine(startSong());
+	}
 
-		Debug.Log ("cam");
+	IEnumerator startSong(){
+		
 		GameObject cam= Instantiate (camera);
 		Vector3 down = transform.TransformDirection(Vector3.down);
 		RaycastHit hit;
 		Physics.Raycast(new Vector3(0,500f,0),down,out hit);
 		cam.transform.position = new Vector3 (hit.point.x, hit.point.y + 5, hit.point.z);
+		MeshParticleEmitter e = null;
+		rain = false;
+		if (rain == true){
+			GameObject rainMain = Instantiate (RainObject);
+			e = rainMain.GetComponent<MeshParticleEmitter>();
+			rainMain.SetActive(true);
+		}
+		float avg = 0;
+		int count = 0;
+		foreach(float f in volumes){
+			avg += f;
+			count++;
+		}
+		avg = avg / count;
+		GameObject p = Instantiate (new GameObject ());
+		source = p.AddComponent<AudioSource> ();
+		source.clip = song;
+		p.SetActive (true);
+		source.Play ();
+		float min = avg;
+		float max = avg;
+		rain = false;
+		yield return new WaitForSeconds (sampleTime / 2);
+		foreach (float f in volumes) {
+			if(rain){
+				e.minEmission = max + (f-avg);
+				e.maxEmission = max + (f-avg);
+			}
+			Debug.Log("Rain");
+			yield return new WaitForSeconds (sampleTime);
+		}	
 		yield return null;
 	}
 
@@ -137,6 +170,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 2;
 		buildingSize = 2;
 		treeLeaves = true;
+		leaf_density = .5f;
+		rain = false;
 	}
 
 	void Ambient(){
@@ -151,6 +186,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 1;
 		buildingSize = 5;
 		treeLeaves = true;
+		leaf_density = .1f;
+		rain = true;
 	}
 	void Country(){
 //		hueRange = 45;
@@ -164,6 +201,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 1;
 		buildingSize = 1;
 		treeLeaves = true;
+		leaf_density = 1;
+		rain = false;
 	}
 	void Electronic(){
 //		hueRange = 360;
@@ -176,6 +215,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 2;
 		buildingSize = 4;
 		treeLeaves = false;
+		leaf_density = .8f;
+		rain = false;
 	}
 
 	void Dubstep(){
@@ -189,6 +230,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 4;
 		buildingSize = 4;
 		treeLeaves = false;
+		leaf_density = .9f;
+		rain = true;
 	}
 	
 	void House(){
@@ -202,6 +245,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 2;
 		buildingSize = 2;
 		treeLeaves = true;
+		leaf_density = .5f;
+		rain = false;
 
 	}
 	void Metal(){
@@ -215,6 +260,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 5;
 		buildingSize = 3;
 		treeLeaves = false;
+		leaf_density = 0;
+		rain = true;
 	}
 	void Rap(){
 //		hueRange = 10;
@@ -228,6 +275,8 @@ public class MainManager : MonoBehaviour {
 		buildingSize = 4;
 		treeLeaves = false;
 		caves = true;
+		leaf_density = 0;
+		rain = false;
 	}
 	void Reggae(){
 //		hueRange = 10;
@@ -240,6 +289,8 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 1;
 		buildingSize = 2;
 		treeLeaves = true;
+		leaf_density = 1;
+		rain = false;
 	}
 
 	void Trance(){
@@ -253,10 +304,16 @@ public class MainManager : MonoBehaviour {
 		buildingMax = 0;
 		buildingSize = 0;
 		treeLeaves = true;
+		leaf_density = .7f;
+		rain = true;
 
 	}
 
 	IEnumerator findGenre(){
+
+		yield return StartCoroutine (getGenre.Request(pathName));
+		genre = getGenre.genre;
+
 
 		switch (genre)
 		{

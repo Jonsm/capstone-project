@@ -71,7 +71,7 @@ public class TreeLeaves : MonoBehaviour {
 				+ v.z * v.z / transform.z / transform.z < 1);
 	}*/
 
-	public void MakeLikeATree ()  { //and leaf
+	public void MakeLikeATree (TreeGenerator tg)  { //and leaf
 		points = tg.points;
 
 		//create a bunch of triangles
@@ -91,8 +91,11 @@ public class TreeLeaves : MonoBehaviour {
 		MeshFilter mf = leaves.GetComponent <MeshFilter> () as MeshFilter;
 		mf.mesh = new Mesh ();
 		Mesh mesh = mf.mesh;
+		if (mesh != null)
+			Debug.Log ("mesh");
 		mesh.vertices = vertices.ToArray ();
 		mesh.triangles = triangles.ToArray ();
+		Debug.Log (mesh.vertices.Length);
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();
 	}
