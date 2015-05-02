@@ -71,18 +71,19 @@ public class TreeLeaves : MonoBehaviour {
 				+ v.z * v.z / transform.z / transform.z < 1);
 	}*/
 
-	public void MakeLikeATree ()  { //and leaf
+	public void MakeLikeATree (TreeGenerator tg)  { //and leaf
 		points = tg.points;
 
 		//create a bunch of triangles
 		List <int> triangles = new List <int> ();
 		List <Vector3> vertices = new List <Vector3> ();
+		List <Vector2> uvs = new List <Vector2> (); //uv map so the leaves can blow
 		foreach (Vector3 v in points.Keys) {
 
 			int numLeaves = Random.Range (leafDensity [0], leafDensity [1] + 1);
 			for (int i = 0; i < numLeaves; i++) {
 				Vector3 pos = Vector3.Lerp (v, v + points [v], (float) i / numLeaves);
-				MakeLeaf (pos, vertices, triangles);
+				MakeLeaf (pos, vertices, triangles, uvs);
 			}
 		}
 
@@ -91,14 +92,16 @@ public class TreeLeaves : MonoBehaviour {
 		MeshFilter mf = leaves.GetComponent <MeshFilter> () as MeshFilter;
 		mf.mesh = new Mesh ();
 		Mesh mesh = mf.mesh;
+
 		mesh.vertices = vertices.ToArray ();
 		mesh.triangles = triangles.ToArray ();
+		mesh.uv = uvs.ToArray ();
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();
 	}
 
 	//adds a leaf to arbitrary list of vertices at point v
-	void MakeLeaf (Vector3 v, List <Vector3> vertices, List <int> triangles) {
+	void MakeLeaf (Vector3 v, List <Vector3> vertices, List <int> triangles, List <Vector2> uvs) {
 		float length = Random.Range (leafLength [0], leafLength [1]);
 		float width = Random.Range (leafWidth [0], leafWidth [1]);
 		Vector3 dir = Vector3.down * length;
@@ -111,6 +114,9 @@ public class TreeLeaves : MonoBehaviour {
 		vertices.Add (v);
 		vertices.Add (v + dir + tangent);
 		vertices.Add (v + dir - tangent);
+		uvs.Add (Vector2.zero);
+		uvs.Add (Vector2.one);
+		uvs.Add (Vector2.one);
 		triangles.Add (vertices.Count - 1);
 		triangles.Add (vertices.Count - 2);
 		triangles.Add (vertices.Count - 3);
@@ -119,6 +125,9 @@ public class TreeLeaves : MonoBehaviour {
 		vertices.Add (v);
 		vertices.Add (v + dir - tangent);
 		vertices.Add (v + dir + tangent);
+		uvs.Add (Vector2.zero);
+		uvs.Add (Vector2.one);
+		uvs.Add (Vector2.one);
 		triangles.Add (vertices.Count - 1);
 		triangles.Add (vertices.Count - 2);
 		triangles.Add (vertices.Count - 3);

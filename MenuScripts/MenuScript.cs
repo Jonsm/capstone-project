@@ -15,6 +15,7 @@ public class MenuScript : MonoBehaviour {
 	public GameObject trees;
 	public GameObject buildings;
 
+
 	public Canvas quitMenu;
 	public Button startText;
 	public Button exitText;
@@ -49,8 +50,12 @@ public class MenuScript : MonoBehaviour {
 	}
 	//Calls the main Manager that starts the level
 	public void StartLevel(){
-		MainManager a = new MainManager (song,cubeManager,trees,buildings,genre);
+		/*
+		MainManager.pathName = pathName;
+		MainManager.song = song;
+		gameObject.SetActive(false);
 		//Application.LoadLevel (1);
+		*/
 	}
 	
 	public void ExitPress(){

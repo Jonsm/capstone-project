@@ -4,14 +4,14 @@ using System.Collections;
 [RequireComponent(typeof(AudioSource))]
 public class MusicReader : MonoBehaviour {
 
-	/*public AudioClip song;
+	public AudioClip song;
 	public AudioSource source;
 	public GameObject indicator;
 	public GameObject indicator2;
 	public GameObject shaders;
 
 	private float startTime;
-
+	/*
 	void Start () {
 		startTime = Time.time;
 		float [] data = new float [song.samples * song.channels];
@@ -92,7 +92,7 @@ public class MusicReader : MonoBehaviour {
 		sm.Begin (sg.genre, sa);
 
 	}
-
+	*/
 	/*
 	 * //plays band passed clip
 	IEnumerator DebugBPF (SpectrumAnalyzer sa) {

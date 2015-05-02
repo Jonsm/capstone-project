@@ -4,30 +4,26 @@ using System.Collections;
 public class TreeStarter : MonoBehaviour {
 	// Use this for initialization
 	public GameObject tree;
-	TreeGenerator [] tg = new TreeGenerator [2];
-	TreeLeaves [] tl = new TreeLeaves [2];
+	public GameObject leaves;
+	TreeGenerator [] tg = new TreeGenerator [1];
+	TreeLeaves [] tl = new TreeLeaves [1];
 	void Start () {
-		GameObject t = Instantiate (tree, Vector3.zero, Quaternion.identity) as GameObject;
-		GameObject t2 = Instantiate (tree, Vector3.left * 10, Quaternion.identity) as GameObject;
-		tg [0] = t.GetComponent <TreeGenerator> () as TreeGenerator;
-		tl [0] = t.GetComponent <TreeLeaves> () as TreeLeaves;
-		tg [1] = t2.GetComponent <TreeGenerator> () as TreeGenerator;
-		tl [1] = t.GetComponent <TreeLeaves> () as TreeLeaves;
+		for (int i = 0; i < tg.Length; i++) {
+			GameObject t = Instantiate (tree, Vector3.zero + i * 50 * Vector3.left, Quaternion.identity) as GameObject;
+			GameObject l = Instantiate (leaves, Vector3.zero, Quaternion.identity) as GameObject;
+			tg [i] = t.GetComponent <TreeGenerator> () as TreeGenerator;
+			tl [i] = t.GetComponent <TreeLeaves> () as TreeLeaves;
+			tl [i].leaves = l;
+		}
 	}
 
 	void Update () {
 		if (Input.GetKeyDown ("up")) {
 			for (int i = 0; i < tg.Length; i++) {
 				tg [i].Init ();
-				if (i == 0) tg [i].pEvent += MakeLeaves;
+				tg [i].pEvent += tl [i].MakeLikeATree;
 				StartCoroutine(tg [i].Grow ());
 			}
 		}
-	}
-
-	void MakeLeaves (TreeGenerator tgi) {
-		Debug.Log ("done");
-		tl [0].tg = tg [0];
-		tl [0].MakeLikeATree ();
 	}
 }

@@ -23,6 +23,7 @@ public class TreeGenerator : MonoBehaviour {
 	public delegate void PopTree (TreeGenerator t);
 	public event PopTree pEvent;
 	private List <TreeGenerator> branches = new List <TreeGenerator> ();
+	private Vector3 lastPoint = Vector3.zero;
 	
 	private Mesh mesh;
 	private int center; //center of faces
@@ -103,11 +104,13 @@ public class TreeGenerator : MonoBehaviour {
 		mesh.RecalculateNormals ();
 
 		//stuff for leaves
-		if (maxLeafPercent > 1) {
+		/*if (maxLeafPercent > 1) {
 			Vector3 pos = gameObject.transform.TransformPoint (mesh.vertices [center] + .95f * Vector3.down * segmentLength [0]);
-			Vector3 dir = gameObject.transform.TransformVector (Vector3.up);
+			Vector3 dir = gameObject.transform.TransformVector (Vector3.up * segmentLength [0]);
 			points.Add (pos, dir);
-		}
+		}*/
+		if (maxLeafPercent > 1)
+			lastPoint = gameObject.transform.TransformPoint (mesh.vertices [center] + Vector3.down * segmentLength [0]);
 		branches.Add (this);
 	}
 
@@ -117,13 +120,6 @@ public class TreeGenerator : MonoBehaviour {
 		float currRadius = radius [0] - widthLossFactor;
 		
 		for (int i = 0; i < segments [0] - 1; i++) {
-			//make note for leaves
-			if (currRadius < maxLeafPercent * radius [0]) {
-				Vector3 pos = gameObject.transform.TransformPoint (mesh.vertices [center]);
-				Vector3 dir2 = gameObject.transform.TransformVector (parameters [0]);
-				points.Add (pos, Vector3.zero);
-			}
-
 			//rotate by a random amount
 			Vector3 rotVector = RandomNormalCurveVector (maxTurn [0]);
 			Quaternion rotation = Quaternion.Euler (rotVector);
@@ -133,6 +129,22 @@ public class TreeGenerator : MonoBehaviour {
 			Vector3 localY = gameObject.transform.InverseTransformVector (Vector3.up);
 			float rad = Random.Range (0, upCurve [0]) * Mathf.PI / 180;
 			parameters [0] = Vector3.RotateTowards (parameters [0], localY, rad, 0);
+
+			//make note for leaves
+//			if (currRadius < maxLeafPercent * radius [0]) {
+//				Vector3 pos = gameObject.transform.TransformPoint (mesh.vertices [center]);
+//				Vector3 dir2 = gameObject.transform.TransformVector (parameters [0]);
+//				points.Add (pos, dir2);
+//			}
+			if (currRadius < maxLeafPercent * radius [0]) {
+				if (lastPoint == Vector3.zero) {
+					lastPoint = gameObject.transform.TransformPoint (mesh.vertices [center]);
+				} else {
+					Vector3 pos = gameObject.transform.TransformPoint (mesh.vertices [center]);
+					points.Add (pos, lastPoint - pos);
+					lastPoint = pos;
+				}
+			}
 
 			Extruder.Extrude (mesh, faces, false, Extruder.ExtrudeRotate, parameters, false);
 
@@ -267,7 +279,8 @@ public class TreeGenerator : MonoBehaviour {
 		mesh.vertices = newVertices;
 		mesh.triangles = newTriangles;
 
-		points.Add (gameObject.transform.TransformPoint (centerCoords), Vector3.zero);
+		Vector3 pos = gameObject.transform.TransformPoint (centerCoords);
+		points.Add (pos, lastPoint - pos);
 		RemoveBranch (this);
 	}
 

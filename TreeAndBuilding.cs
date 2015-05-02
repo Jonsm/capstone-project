@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class TreeAndBuilding : MonoBehaviour {
 
+	public GameObject leaf_object;
 	private Vector2 position = new Vector2 (0f,0f);
 	private Dictionary<Vector2 , float> noises = new Dictionary<Vector2,float>();
 	private int treeDensity = 0;
@@ -17,11 +18,13 @@ public class TreeAndBuilding : MonoBehaviour {
 	private bool leaf = false;
 	private int treeSize = 1;
 	private int buildingSize = 1;
+	private float leaf_density = 0;
 
 	private static GameObject BuildingContainer;
 	// Use this for initialization
 	public void Begin(Vector2 posit, Dictionary<Vector2,float> noise, int trees, int buildings,GameObject cubeObj, 
-	                  GameObject treeObj, GameObject buildingObj,float cubeSz, bool leaves,int treeSz, int buildingSz){
+	                  GameObject treeObj, GameObject buildingObj,float cubeSz, bool leaves,int treeSz, int buildingSz,
+	                  float leaf_d){
 
 		if (BuildingContainer == null)
 			BuildingContainer = new GameObject ();
@@ -37,9 +40,10 @@ public class TreeAndBuilding : MonoBehaviour {
 		leaf = leaves;
 		treeSize = treeSz;
 		buildingSize = buildingSz;
+		leaf_density = leaf_density;
 		StartCoroutine ("placeTrees");
 		StartCoroutine ("placeBuildings");
-		Debug.Log ("S");
+
 
 	}
 	void makeTrees(Vector2 v, bool big){
@@ -51,45 +55,34 @@ public class TreeAndBuilding : MonoBehaviour {
 		                               ((v.y)*cubeSize + (position.y-1/2)*20*cubeSize)),down,out hit)
 		  								 && (hit.collider == cube.GetComponent<Collider>() as Collider)){
 			GameObject treeLoc = Instantiate (tree);
+			GameObject leaf = Instantiate(leaf_object);
 			TreeGenerator t = treeLoc.GetComponent<TreeGenerator> () as TreeGenerator;
+			TreeLeaves l = treeLoc.GetComponent<TreeLeaves>()  as TreeLeaves;
 			//MeshCollider c = treeLoc.GetComponent<MeshCollider> () as MeshCollider;
+			l.tg = t;
+			float trunk = (float)Random.Range(cubeSize*treeSize/8,cubeSize*treeSize/4);
+			t.radius = new float[]{trunk,0};
+			t.segments = new int[] {10,2};
+			t.segmentLength = new float[]{trunk*1.25f,0};
+			t.upCurve = new float[]{.95f,0};
+			t.maxLeafPercent = .50f;
+			t.maxTurn = new float[]{20f,0};
+			t.branchChance = new float[]{.6f,0};
+			t.branchDeviation = new float[] {0,0};
 
-			if(big){
-				float trunk = (float)Random.Range(cubeSize*treeSize/8,cubeSize*treeSize/4);
-				t.radius = new float[]{trunk,0};
-				t.segments = new int[] {10,2};
-				t.segmentLength = new float[]{trunk*1.25f,0};
-				t.upCurve = new float[]{.97f,0};
-				//t.leafSizeRange = new float[]{.1f*trunk,.25f*trunk};
-			}else{
-				//float trunk = (float)Random.Range(cubeSize*treeSize/3,cubeSize*treeSize);
-				//t.radius = new float[]{trunk,0};
-				//t.segmentLength = new float[]{trunk/5, 20f};
-			}
-
-			//Set each component of a tree and Instantiate here
-			/*
-			t.segments = new int[]{(int)Random.Range(1,5), 1};
-			t.segmentLength = new float[]{(float)Random.Range(1,5), 0f};
-			t.radius = new float[]{(float)Random.Range(3,5), 10f};
-			t.upCurve = new float[]{(float)Random.Range(3,5), 10f};
-			t.maxTurn = new float[]{(float)Random.Range(3,5), 10f};
-			t.branchChance = new float[]{(float)Random.Range(3,5), 10f};
-			t.branchDeviation = new float[]{(float)Random.Range(3,5), 10f};
-			*/
-			if(big){
+			l.leafAngleRange = new float[]{40f,90f};
+			l.leafDensity = new int[]{2,6};
+			l.leafLength = new float[]{2,6};
+			l.leafWidth = new float[]{2,6};
+			l.leaves = leaf;
 			treeLoc.transform.position = new Vector3 (hit.point.x,hit.point.y-2,hit.point.z);
-			}
-			else{
-				treeLoc.transform.position = hit.point;
-			}
+		
 			//treeLoc.transform.parent = cube.transform;
-			treeLoc.GetComponent<TreeGenerator> ().Init();
-			StartCoroutine(treeLoc.GetComponent<TreeGenerator> ().Grow());
+			t.Init();
+			t.pEvent += l.MakeLikeATree;
+			StartCoroutine(t.Grow());
+
 			//treeLoc.transform.parent = TreeContainer.transform;
-			if(leaf == true){
-				treeLoc.GetComponent<TreeLeaves>().MakeLikeATree();
-			}
 			treeLoc.SetActive(true);
 			//c.sharedMesh = treeLoc.GetComponent<MeshFilter>().mesh;
 			//treeLoc.GetComponent<CapsuleCollider>().radius = t.
@@ -116,11 +109,11 @@ public class TreeAndBuilding : MonoBehaviour {
 			cbm.segmentHeight = a;
 			int max = Mathf.RoundToInt(f/5);
 			cbm.maxRad = new float[] {a+ max, a + max*1.5f};
-			cbm.topChances = new float[] {.7f,.2f,.1f};
+			//cbm.topChances = new float[] {.7f,.2f,.1f};
 			cbm.expandChance = .25f;
-			cbm.windowInset = .15f;
+			//cbm.windowInset = .15f;
 			cbm.windowHeight = max;
-			cbm.windowInset = .5f;
+			//cbm.windowInset = .5f;
 
 					
 			cbm.BuildMe();
@@ -160,7 +153,7 @@ public class TreeAndBuilding : MonoBehaviour {
 			
 			if(noises[new Vector2(x, z)] <.45f &&  noises[new Vector2(x, z)] >.445f){
 				makeBuildings(v);
-				yield return new WaitForSeconds(1.0f);
+				yield return new WaitForSeconds(.02f);
 			}
 		}
 		yield return null;

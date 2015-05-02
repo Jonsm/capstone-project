@@ -1,10 +1,11 @@
 fileFormatVersion: 2
 guid: a3625c591b76892458a9a163e289a53b
-timeCreated: 1430093834
+timeCreated: 1430437751
 licenseType: Free
 MonoImporter:
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - leaf_object: {fileID: 197960, guid: 9b41bf8627ea60f4da96d8057cecb98d, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
