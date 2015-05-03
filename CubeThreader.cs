@@ -9,6 +9,8 @@ using CoherentNoise.Generation.Combination;
 using CoherentNoise.Generation.Voronoi;
 
 public class CubeThreader {
+	public static float rockiness = 1f;
+
 	public float cubeSize = 1; //size of each cube
 	public delegate float func (Vector3 pos,Generator g); //function used for isosurfaces
 	public float surface; //cutoff value of isosurface
@@ -220,7 +222,7 @@ public class CubeThreader {
 
 		pos.y = pos.y - 10;
 		return  ((((pos.y)) + equil1 * modA * g.GetValue (pos.x / 20, pos.y / 20, pos.z / 20))
-		            + (g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
+		            + (rockiness * g.GetValue (pos.x / 7, pos.y / 7, pos.z / 7))
 		            + ((.5f * g.GetValue (pos.x / 5, pos.y / 5, pos.z / 5))));
 
 	}

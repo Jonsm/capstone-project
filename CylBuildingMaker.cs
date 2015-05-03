@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class CylBuildingMaker : MonoBehaviour {
 	public GameObject child;
+	public Mesh mfMesh;
 	public float radius;
 	public int segments;
 	public int segmentHeight;
@@ -26,8 +27,17 @@ public class CylBuildingMaker : MonoBehaviour {
 	private int [] faces;
 	private Mesh mesh;
 
+	public delegate void pDelegate (CylBuildingMaker cbm);
+	public event pDelegate pEvent;
+	private List <CylBuildingMaker> buildings = new List <CylBuildingMaker> ();
+
 	public void BuildMe () {
+		buildings.Add (this);
+
+		MeshFilter mf = gameObject.GetComponent <MeshFilter> () as MeshFilter;
+		mf.mesh = mfMesh;
 		mesh = gameObject.GetComponent <MeshFilter> ().mesh;
+		//mesh.MarkDynamic ();
 		Vector3 [] vertices = mesh.vertices;
 		int [] triangles = mesh.triangles;
 
@@ -65,11 +75,17 @@ public class CylBuildingMaker : MonoBehaviour {
 		mesh.triangles = triangles;
 		mesh.uv = uv;
 
+		//rescale collider
+		CapsuleCollider cc = gameObject.GetComponent<CapsuleCollider> () as CapsuleCollider;
+		cc.radius = radius;
+
+		if (numChildren > 0) StartCoroutine(MakeChildren ());
 		AddSegments();
 		if (hasDome) MakeDome ();
-		if (numChildren > 0) MakeChildren ();
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();
+
+		RemoveBuilding (this);
 	}
 
 	void AddSegments () {
@@ -183,7 +199,7 @@ public class CylBuildingMaker : MonoBehaviour {
 	}
 
 	//buildings can have children
-	void MakeChildren () {
+	IEnumerator MakeChildren () {
 		List <int []> forbiddenAngles = new List <int []> ();
 		for (int i = 0; i < numChildren; i++) {
 			//calculate place to put the child building
@@ -206,7 +222,7 @@ public class CylBuildingMaker : MonoBehaviour {
 
 			//instantiate
 			Vector3 v = Quaternion.Euler (0, angle, 0) * (radius * Vector3.left);
-			GameObject childO = Instantiate (child, v, Quaternion.identity) as GameObject;
+			GameObject childO = Instantiate (child, gameObject.transform.position + v, Quaternion.identity) as GameObject;
 			CylBuildingMaker ccb = childO.GetComponent <CylBuildingMaker> () as CylBuildingMaker;
 			forbiddenAngles.Add (new int [] {(int) (angle - angleSub / 2), (int) (angle + angleSub / 2)});
 
@@ -221,8 +237,20 @@ public class CylBuildingMaker : MonoBehaviour {
 			ccb.maxRad = new float [] {maxRad [0] * newRad / radius, maxRad [1] * newRad / radius};
 			ccb.windowHeight = windowHeight;
 			ccb.numChildren = 0;
+			ccb.pEvent = RemoveBuilding;
 
 			ccb.BuildMe ();
+
+			yield return new WaitForSeconds (.1f);
+		}
+
+		yield return null;
+	}
+
+	void RemoveBuilding (CylBuildingMaker tg) {
+		buildings.Remove (tg);
+		if (buildings.Count == 0) {
+			if (pEvent != null) pEvent (this);
 		}
 	}
 }

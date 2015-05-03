@@ -11,16 +11,9 @@ using NAudio.Wave;
 public class MenuScript : MonoBehaviour {
 	//Need Tree, Building, CubeManager prefabs
 	public GameObject explorer;
-	public GameObject cubeManager;
-	public GameObject trees;
-	public GameObject buildings;
+	public Button selectSong;
+	public RawImage hover;
 
-
-	public Canvas quitMenu;
-	public Button startText;
-	public Button exitText;
-
-	private SongGenre.Genre genre;
 	private bool songUp = false;
 	private string pathName = "";
 	private GameObject mp3;
@@ -35,7 +28,6 @@ public class MenuScript : MonoBehaviour {
 	private AudioSource source;
 	private AudioClip song;
 	public int sampleCount;
-	public Transform[] cubies;
 	float[] samples;
 
 	bool isReady = false;
@@ -43,50 +35,38 @@ public class MenuScript : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		quitMenu = quitMenu.GetComponent<Canvas> ();
-		quitMenu.enabled = false;
-		startText = startText.GetComponent<Button> ();
-		exitText = exitText.GetComponent<Button> ();
+		//selectSong = selectSong.GetComponent<Button> ();
+		hover = hover.GetComponent<RawImage> ();
+		hover.enabled = false;
+		//selectSong.enabled = true;
 	}
 	//Calls the main Manager that starts the level
 	public void StartLevel(){
-		/*
+
 		MainManager.pathName = pathName;
 		MainManager.song = song;
 		gameObject.SetActive(false);
-		//Application.LoadLevel (1);
-		*/
-	}
-	
-	public void ExitPress(){
-		quitMenu.enabled = true;
-		startText.enabled = false;
-		exitText.enabled = false;
+		Application.LoadLevel (1);
+
 	}
 
-	public void NoPress(){
-		quitMenu.enabled = false;
-		startText.enabled = true;
-		exitText.enabled = true;
+	public void onHover (){
+
+		hover.enabled = true;
+	}
+	public void offHover(){
+		hover.enabled = false;
 	}
 
-	public void ExitGame(){
-		Application.Quit ();
-	}
 
-	public void UploadSong(){
+	public void UploadSong() {
+		UnityEngine.Debug.Log ("True");
 		if (men == false){
-			startText.enabled = false;
-			exitText.enabled = false;
 			mp3 = Instantiate (explorer);
-			//while (n.GetComponent<Mp3FileFinder>().m_mp3Path.Equals("")) {
-			//
-			//}
 			UnityEngine.Debug.Log(mp3.GetComponent<Mp3FileFinder>().m_mp3Path);
 			up = true;
 			men = true;
 		}
-		//Use File Browsing here then an mp3 to wav converter
 	}
 
 	void Update(){
@@ -103,9 +83,6 @@ public class MenuScript : MonoBehaviour {
 			done = true;
 		}
 		if (done == true) {
-			SongGenre g = new SongGenre();
-			g.Request(pathName);
-			genre = g.genre;
 			StartLevel();
 		}
 	}

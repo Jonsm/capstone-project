@@ -86,18 +86,20 @@ public class CubeManager : MonoBehaviour {
 	}
 
 	IEnumerator cube_Gen(Vector2 posit){
-		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.01f);
+		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.1f);
 		GameObject cube = Instantiate(object_prefab);
 		List<int> tris = new List<int> ();
 		List<Vector3> vert = new List<Vector3> ();
 		tris = (List<int>)a.triangle[posit];
 		vert = (List<Vector3>)a.vertices[posit];
-		cubeList.Add (cube);
 		cube.GetComponent<MarchingCubes>().Go(tris,vert);
 		cube.transform.parent = gameObject.transform;
+		TreeAndBuilding tb = TreeBuilder.GetComponent<TreeAndBuilding> () as TreeAndBuilding;
 		TreeBuilder.GetComponent<TreeAndBuilding> ().Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], 
 		                                                treeDensity,buildingDensity,cube,tree,building,cubeSize,
 		                                             treeLeaves,treeSize,buildingSize,leaf_density);
+		while (!tb.done) yield return new WaitForSeconds (.1f);
+		cubeList.Add (cube);
 
 		cubes[posit] = true;
 		yield return null;

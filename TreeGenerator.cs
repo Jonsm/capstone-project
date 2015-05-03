@@ -8,7 +8,6 @@ public class TreeGenerator : MonoBehaviour {
 	public float [] segmentLength; //length of each segment, % change
 	public float [] radius; //how big is the base of the trunk, % change
 	public float [] upCurve; //angle range by which tree grows upward, % change
-	//1 is perfectly straight, 0 is growing in random directions, % change
 	public float [] maxTurn; //maximum turn radius in degrees, probably set to < 20
 	public float [] branchChance; //chance of branching at a segment
 	public float [] branchDeviation; //amount branch-trunk angle will deviate from 90
@@ -35,13 +34,14 @@ public class TreeGenerator : MonoBehaviour {
 	//set the trunk to the right size
 	public void Init () {
 		//add the top faces to faces and set their height
-		if (TreeContainer == null)
+		if (TreeContainer == null) {
 			TreeContainer = new GameObject ();
+		}
 		gameObject.transform.parent = TreeContainer.transform;
 		MeshFilter mf = gameObject.GetComponent <MeshFilter> () as MeshFilter;
 		mf.mesh = mfMesh;
 		mesh = gameObject.GetComponent <MeshFilter> ().mesh;
-		mesh.MarkDynamic ();
+		//mesh.MarkDynamic ();
 
 		int [] triangles = mesh.triangles;
 		Vector3 [] vertices = mesh.vertices;
@@ -187,7 +187,7 @@ public class TreeGenerator : MonoBehaviour {
 
 		TreeGenerator tg = newBranch.GetComponent <TreeGenerator> () as TreeGenerator;
 		tg.segments = new int [] {segments [0] - segs - segments [1], segments [1]};
-		tg.radius = new float [] {rad - radius [1], radius [1]};
+		tg.radius = new float [] {rad * (1 - radius [1]), radius [1]};
 		tg.segmentLength = ApplyIncrements (segmentLength);
 		tg.upCurve = ApplyIncrements (upCurve);
 		tg.maxTurn = ApplyIncrements (maxTurn);
