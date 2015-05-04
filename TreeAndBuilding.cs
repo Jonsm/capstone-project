@@ -15,9 +15,28 @@ public class TreeAndBuilding : MonoBehaviour {
 	private GameObject building;
 	private float cubeSize;
 	private bool leaf = false;
+	private int leaf_density;
 	private int treeSize = 1;
-	private int buildingSize = 1;
-	private float leaf_density = 0;
+
+	public static int buildingSize= 1;
+	public static int buildingHeight;
+	public static float expandChance;
+	public static float windows;
+	public static bool dome;
+	public static float domeRat;
+	public static int numChild;
+	public static float[] childRadius;
+	public static float[] childHeight;
+
+	public static int[] segments;
+	public static float[] segmentLength;
+	public static float[] upCurve;
+	public static float[] maxTurn;
+	public static float[] branchChance;
+	public static float[] branchDeviation;
+	public static int[] leafDensity;
+
+
 
 	//for sync
 	private List <TreeGenerator> treesInProgress = new List <TreeGenerator> ();
@@ -68,17 +87,17 @@ public class TreeAndBuilding : MonoBehaviour {
 			l.tg = t;
 			float trunk = (float)Random.Range(cubeSize*treeSize/24,cubeSize*treeSize/12);
 			t.radius = new float[]{trunk,.25f};
-			if (big) t.segments = new int[] {15, 2};
+			if (big) t.segments =segments;
 			else t.segments = new int[] {10,2};
-			t.segmentLength = new float[]{trunk*1.25f,0};
-			t.upCurve = new float[]{30,.25f};
+			t.segmentLength = new float[]{trunk*segmentLength[0], segmentLength[1]};
+			t.upCurve = upCurve;
 			t.maxLeafPercent = .50f;
-			t.maxTurn = new float[]{20f,0};
-			t.branchChance = new float[]{.8f,0};
-			t.branchDeviation = new float[] {0,0};
+			t.maxTurn = maxTurn;
+			t.branchChance = branchChance;
+			t.branchDeviation = branchDeviation;
 
 			l.leafAngleRange = new float[]{40f,90f};
-			l.leafDensity = new int[]{2,6};
+			l.leafDensity = leafDensity;
 			l.leafLength = new float[]{trunk / 2, trunk};
 			l.leafWidth = new float[]{trunk / 2, trunk};
 			l.leaves = leaf;
@@ -110,22 +129,24 @@ public class TreeAndBuilding : MonoBehaviour {
 			//MeshCollider c = buildingA.GetComponent<MeshCollider> () as MeshCollider;
 			buildingsInProgress.Add (cbm);
 			cbm.pEvent += RemoveBuilding;
-			float f  = 2 * (float)Random.Range(cubeSize*buildingSize/2,cubeSize*buildingSize);
-			int a = Mathf.RoundToInt(f);
-			cbm.radius = a;
-			cbm.segments = a;
-			cbm.segmentHeight = a;
-			int max = Mathf.RoundToInt(f/5);
-			cbm.maxRad = new float[] {a+ max, a + max*1.5f};
-			cbm.expandChance = .25f;
-			cbm.windowHeight = max;
-			cbm.numChildren = Random.Range (0, 3);
-			cbm.childRadiusFactor = new float[] {.3f,.5f};
-			cbm.childSegmentFactor = new float[] {.5f, 1.5f};
+			float r  = (float)Random.Range(cubeSize*buildingSize/4,cubeSize*buildingSize/2);
+			float h =(float)Random.Range(cubeSize*buildingHeight/4,cubeSize*buildingHeight/2);
+			int height = Mathf.RoundToInt(h);
+			int rad = Mathf.RoundToInt(r);
+			cbm.radius = rad;
+			cbm.segments = height;
+			cbm.segmentHeight = height;
+			int max = Mathf.RoundToInt(r/5);
+			cbm.maxRad = new float[] {rad + max, rad+ max*1.5f};
+			cbm.expandChance = expandChance;
+			cbm.windowHeight = windows;
+			cbm.numChildren = numChild;
+			cbm.childRadiusFactor = childRadius;
+			cbm.childSegmentFactor = childHeight;
 					
 			cbm.BuildMe();
 			buildingA.transform.parent = BuildingContainer.transform;
-			buildingA.transform.position = new Vector3 (hit.point.x,hit.point.y,hit.point.z);;
+			buildingA.transform.position = new Vector3 (hit.point.x,hit.point.y-10,hit.point.z);;
 			buildingA.SetActive(true);
 			//c.sharedMesh = buildingA.GetComponent<MeshFilter> ().mesh;
 		}
@@ -158,9 +179,9 @@ public class TreeAndBuilding : MonoBehaviour {
 			float x = Mathf.RoundToInt(v.x);
 			float z = Mathf.RoundToInt(v.y);
 			
-			if(noises[new Vector2(x, z)] <.45f &&  noises[new Vector2(x, z)] >.445f){
+			if(noises[new Vector2(x, z)] <.45f &&  noises[new Vector2(x, z)] >.43f){
 				makeBuildings(v);
-				yield return new WaitForSeconds(.02f);
+				yield return new WaitForSeconds(.01f);
 			}
 		}
 		yield return null;

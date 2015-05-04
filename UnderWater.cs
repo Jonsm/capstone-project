@@ -37,6 +37,9 @@ public class UnderWater : MonoBehaviour {
 	void setNormal(){
 		RenderSettings.fogColor = normal_color;
 		RenderSettings.fogDensity = init_density;
+		
+		//RenderSettings.fog = false;
+		
 	}
 	void setWater(){
 		RenderSettings.fogColor = water_color;

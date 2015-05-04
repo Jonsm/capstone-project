@@ -45,7 +45,10 @@ public class MenuScript : MonoBehaviour {
 
 		MainManager.pathName = pathName;
 		MainManager.song = song;
-		gameObject.SetActive(false);
+		if (song == null) {
+			UnityEngine.Debug.Log("song null");
+		}
+		//gameObject.SetActive(false);
 		Application.LoadLevel (1);
 
 	}
@@ -80,7 +83,6 @@ public class MenuScript : MonoBehaviour {
 		}
 		if(path == true && done == false){
 			StartCoroutine("Mus");
-			done = true;
 		}
 		if (done == true) {
 			StartLevel();
@@ -112,10 +114,13 @@ public class MenuScript : MonoBehaviour {
 		while(a.loadState != AudioDataLoadState.Loaded)
 		{
 			UnityEngine.Debug.Log("still in loop");
-			yield return www; 
+			yield return new WaitForSeconds(.02f); 
 		}
+
 		song = a;
 		isReady = true;
+		done = true;
+		yield return null;
 	}
 
 	public static void Mp3ToWav(string mp3File, string outputFile)
