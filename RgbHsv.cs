@@ -74,8 +74,9 @@ public static class RgbHsv {
 		}
 	}
 
-	public static void RGBToHSV(Color rgbColor, out Vector3 hsv)
+	public static Vector3 RGBToHSV(Color rgbColor)
 	{
+		Vector3 hsv = new Vector3 ();
 		if (rgbColor.b > rgbColor.g && rgbColor.b > rgbColor.r)
 		{
 			RGBToHSVHelper(4f, rgbColor.b, rgbColor.r, rgbColor.g, out hsv);
@@ -91,6 +92,8 @@ public static class RgbHsv {
 				RGBToHSVHelper(0f, rgbColor.r, rgbColor.g, rgbColor.b, out hsv);
 			}
 		}
+
+		return hsv;
 	}
 
 	private static void RGBToHSVHelper(float offset, float dominantcolor, float colorone, float colortwo, out Vector3 hsv)
