@@ -10,25 +10,32 @@ public class ShaderManager : MonoBehaviour {
 	public Material building;
 	//public Material trunk;
 
+	private AudioSource source;
 	private SongGenre.Genre genre;
 	private SpectrumAnalyzer sa;
 	private GameObject rain;
 	private FogControl fog;
-
-	private bool begun = false;
+	
 	private Color mainSkyColor;
 	private Color secondSkyColor;
 	private Color groundColor;
 	private Color leafColor;
 	private float hRange; //range in hue around which the color varies
+	private float lRange; //range in lightness around which color varies, for volume
+	private float bpRange; //amount to vary sine period (With volume)
+	private float sinePower; //how visible sines are
 
 	private float [] pitch;
 	private float [] volume;
 	private float averagePitch;
 	private float averageVolume;
-	private SortedDictionary <float, float> beats;
 
+	private SortedDictionary <float, float> beats;
+	private List <float> beatsList;
+	private float beatPeriod;
+	
 	private float startTime;
+	private int currentBeat;
 
 	public void Begin (SongGenre.Genre g, SpectrumAnalyzer saa, 
 	                   GameObject rain, FogControl fg) {
@@ -37,8 +44,8 @@ public class ShaderManager : MonoBehaviour {
 		sa = saa;
 		this.rain = rain;
 		fog = fg;
-		begun = true;
 		startTime = Time.time;
+		source = fog.gameObject.GetComponent <AudioSource> () as AudioSource;
 
 		//get shared materials
 		renderer = gameObject.GetComponent <MeshRenderer> () as Renderer;
@@ -50,6 +57,7 @@ public class ShaderManager : MonoBehaviour {
 		GetRanges ();
 		GetMainColors ();
 		InvokeRepeating ("Animate", 0, .05f);
+		InvokeRepeating ("Beats", 0, .05f);
 	}
 
 	void Animate () {
@@ -58,20 +66,45 @@ public class ShaderManager : MonoBehaviour {
 		if (pos == sa.charPitches.Length) return;
 		float val = Mathf.Lerp (sa.charPitches [pos], sa.charPitches [pos + 1], 
 		                        (time - pos * sa.sampleTime) / sa.sampleTime);
+		float vol = Mathf.Lerp (sa.volumes [pos], sa.volumes [pos + 1],
+		                        (time - pos * sa.sampleTime) / sa.sampleTime);
 
 		Vector3 skyHSV1 = RgbHsv.RGBToHSV (mainSkyColor);
+
+		//mod by pitch
 		Vector3 skyHSV12 = new Vector3 ();
-//		if (val > averagePitch) skyHSV12 = new Vector3 (ModFloat (skyHSV1.x + Mathf.Lerp(0, hRange, 
-//                                                       (val - averagePitch) / (pitch [1] - averagePitch))),
-//		                                   				skyHSV1.y, skyHSV1.z);
-//		else skyHSV12 = new Vector3 (ModFloat (skyHSV1.x + Mathf.Lerp(-1 * hRange, 0, 
-//                                    (averagePitch - val) / (averagePitch - pitch [0]))),
-//		                             skyHSV1.y, skyHSV1.z);
 		skyHSV12 = new Vector3 (ModFloat (skyHSV1.x + Mathf.Lerp(-1 * hRange, hRange, 
                                (val - pitch [0]) / (pitch [1] - pitch [0]))),
                  				skyHSV1.y, skyHSV1.z);
+
+		//mod by volume
+		float vShift = Mathf.Lerp (-1 * lRange, lRange, (vol - volume [0]) / (volume [1] - volume [0]));
+		skyHSV12.y = Mathf.Clamp (skyHSV12.y - vShift, 0, 1);
+		skyHSV12.z = Mathf.Clamp (skyHSV12.z + vShift, 0, 1);
+
 		Color newSky = RgbHsv.HSVToRGB (skyHSV12);
 		skybox.SetColor ("_Color", newSky);
+		terrain.SetColor ("_BeatColor", newSky);
+	}
+
+	void Beats () {
+		float time = Time.time - startTime;
+
+		if (currentBeat == beatsList.Count) return;
+		int pos = (int) (time / sa.sampleTime);
+		float vol = Mathf.Lerp (sa.volumes [pos], sa.volumes [pos + 1],
+		                        (beatsList [currentBeat] - pos * sa.sampleTime) / sa.sampleTime);
+		float bp = Mathf.Lerp (1 - bpRange, 1 + bpRange, (vol - volume [0]) / (volume [1] - volume [0]));
+		terrain.SetFloat ("_SinePeriod", bp);
+
+		if (time > beatsList [currentBeat]) {
+			Debug.Log ("Beat");
+			currentBeat++;
+			terrain.SetFloat ("_BeatTime", startTime + beatsList [currentBeat]);
+
+			float strength = sinePower * (vol - volume [0]) / (volume [1] - volume [0]);
+			terrain.SetFloat ("_BeatStrength", Mathf.Pow (strength, 2));
+		}
 	}
 
 	//gets average and min max pitch and volume and bpm
@@ -103,6 +136,18 @@ public class ShaderManager : MonoBehaviour {
 			if (sa.bandBeats [i].Count > sa.bandBeats [mostBeats].Count) mostBeats = i;
 		}
 		beats = sa.bandBeats [mostBeats];
+		beatsList = new List <float> (sa.bandBeats [mostBeats].Keys);
+		beatsList.Sort ();
+		beatPeriod = (beatsList [beatsList.Count - 1] - beatsList [0]) / (beatsList.Count - 1);
+		terrain.SetFloat ("_BeatPeriod", beatPeriod);
+
+//		beatMax = 0;
+//		beatMin = float.MaxValue;
+//		for (int i = 0; i < beatsList.Count; i++) {
+//			float pow = beats [beatsList [i]];
+//			if (pow > beatMax) beatMax = pow;
+//			if (pow < beatMin) beatMin = pow;
+//		}
 
 		//Debug.Log ("AVG VOLUME " + averageVolume);
 		//Debug.Log ("AVG PITCH " + averagePitch);
@@ -128,6 +173,9 @@ public class ShaderManager : MonoBehaviour {
 		float skySValue = .3f;
 		float leafDifference = .5f;
 		hRange = .17f;
+		lRange = .15f;
+		bpRange = .5f;
+		sinePower = 1;
 
 		switch (genre) {
 		case SongGenre.Genre.Alternative:
@@ -151,7 +199,7 @@ public class ShaderManager : MonoBehaviour {
 		case SongGenre.Genre.Electronic:
 			groundHSV = new Vector3 (.2f, .5f, .4f);
 			leafDifference = .2f;
-			hRange = .5f;
+			hRange = .35f;
 			skySValue = .7f;
 			break;
 		case SongGenre.Genre.Folk:
@@ -165,16 +213,20 @@ public class ShaderManager : MonoBehaviour {
 		case SongGenre.Genre.Metal:
 			leafDifference = .2f;
 			groundHSV = new Vector3 (.2f, .5f, .4f);
+			sinePower = .3f;
 			break;
 		case SongGenre.Genre.Rap:
 			leafDifference = .1f;
+			sinePower = .3f;
 			break;
 		case SongGenre.Genre.Reggae:
 			groundHSV = new Vector3 (.2f, .5f, 1.4f);
 			hRange = .35f;
 			skySValue = .7f;
+			sinePower = .5f;
 			break;
 		case SongGenre.Genre.Rock:
+			sinePower = .5f;
 			break;
 		case SongGenre.Genre.Trance:
 			groundHSV = new Vector3 (.2f, .5f, 1.4f);
