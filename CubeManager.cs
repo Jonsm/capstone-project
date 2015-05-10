@@ -9,7 +9,8 @@ using CoherentNoise.Generation.Combination;
 using CoherentNoise.Generation.Voronoi;
 
 public class CubeManager : MonoBehaviour {
-	
+	public GameObject grass;
+
 	public float cubeSize = .5f; //size of each cube
 	public float surface = 1; //cutoff value of isosurface
 	public int size = 1;
@@ -98,7 +99,12 @@ public class CubeManager : MonoBehaviour {
 		TreeBuilder.GetComponent<TreeAndBuilding> ().Begin (posit,(Dictionary<Vector2,float>)perlinNoises[posit], 
 		                                                treeDensity,buildingDensity,cube,tree,building,cubeSize,
 		                                             treeLeaves,treeSize,buildingSize,leaf_density);
+		GameObject grassObject = Instantiate (grass) as GameObject;
+		GrassScript gs = grassObject.GetComponent <GrassScript> () as GrassScript;
+		gs.Begin (cube, (Dictionary<Vector2,float>)perlinNoises [posit], cubeSize, posit);
+
 		while (!tb.done) yield return new WaitForSeconds (.1f);
+		while (!gs.done) yield return new WaitForSeconds (.1f);
 		cubeList.Add (cube);
 
 		cubes[posit] = true;

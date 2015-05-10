@@ -85,6 +85,8 @@ public class ShaderManager : MonoBehaviour {
 		Color newSky = RgbHsv.HSVToRGB (skyHSV12);
 		skybox.SetColor ("_Color", newSky);
 		terrain.SetColor ("_BeatColor", newSky);
+		fog.fog_color = newSky;
+		fog.fog_change = true;
 	}
 
 	void Beats () {

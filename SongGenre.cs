@@ -32,6 +32,7 @@ public class SongGenre : MonoBehaviour {
 				string str2 = "\"([^\"]*)\"";
 				r = new Regex (str1 + ":" + str2);
 				genre = genreFromString (r.Match (str).Groups [1].Value);
+				Debug.Log (genre);
 			}
 		}
 
@@ -41,10 +42,13 @@ public class SongGenre : MonoBehaviour {
 
 	private Genre genreFromString (string str) {
 		string lc = str.ToLower ();
-
+		Debug.Log (lc);
 		//more specific types first
 		if (lc.Contains ("alternative") || lc.Contains ("indie"))
 			return Genre.Alternative;
+		else if (lc.Contains ("classic") || lc.Contains ("baroque") || lc.Contains ("romantic")
+		         || lc.Contains ("orchestra"))
+			return Genre.Classical;
 		else if (lc.Contains ("metal") || lc.Contains ("scream") || lc.Contains ("core"))
 			return Genre.Metal;
 		else if (lc.Contains ("reggae"))
@@ -53,7 +57,7 @@ public class SongGenre : MonoBehaviour {
 			return Genre.Rock;
 		else if (lc.Contains ("trance"))
 			return Genre.Trance;
-		else if (lc.Contains ("rap") || lc.Contains ("hip hop") || lc.Contains ("hiphop"))
+		else if (lc.Contains ("rap") || lc.Contains ("hip") || lc.Contains ("hiphop"))
 			return Genre.Rap;
 		else if (lc.Contains ("ambient") || lc.Contains ("background"))
 			return Genre.Ambient;
@@ -66,9 +70,8 @@ public class SongGenre : MonoBehaviour {
 		else if (lc.Contains ("electronic") || lc.Contains ("tech") || lc.Contains ("edm") ||
 		         lc.Contains ("dance"))
 			return Genre.Electronic;
-		else if (lc.Contains ("classic") || lc.Contains ("baroque") || lc.Contains ("romantic"))
-			return Genre.Classical;
-		else return Genre.Unknown;
+		else return Genre.Electronic;
+		Debug.Log (genre);
 	}
 
 }

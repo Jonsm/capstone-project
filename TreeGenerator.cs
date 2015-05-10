@@ -33,6 +33,8 @@ public class TreeGenerator : MonoBehaviour {
 
 	//set the trunk to the right size
 	public void Init () {
+		gameObject.GetComponent<MeshRenderer> ().enabled = false;
+		MainManager.meshManager.Add(gameObject.GetComponent<MeshRenderer> ());
 		//add the top faces to faces and set their height
 		if (TreeContainer == null) {
 			TreeContainer = new GameObject ();

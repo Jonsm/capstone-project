@@ -32,6 +32,8 @@ public class CylBuildingMaker : MonoBehaviour {
 	private List <CylBuildingMaker> buildings = new List <CylBuildingMaker> ();
 
 	public void BuildMe () {
+		gameObject.GetComponent<MeshRenderer> ().enabled = false;
+		MainManager.meshManager.Add(gameObject.GetComponent<MeshRenderer> ());
 		buildings.Add (this);
 
 		MeshFilter mf = gameObject.GetComponent <MeshFilter> () as MeshFilter;

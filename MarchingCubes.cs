@@ -14,6 +14,9 @@ public class MarchingCubes : MonoBehaviour {
 	private List<Vector3> vertice = new List<Vector3> ();
 	// Use this for initialization
 	public void Go (List<int> triangles,List<Vector3> vertices) {
+
+		gameObject.GetComponent<MeshRenderer> ().enabled = false;
+		MainManager.meshManager.Add (gameObject.GetComponent<MeshRenderer> ());
 		Mesh mesh = gameObject.GetComponent <MeshFilter> ().mesh;
 		MeshCollider collide = gameObject.GetComponent<MeshCollider> ();
 		triangle = triangles;
@@ -23,7 +26,6 @@ public class MarchingCubes : MonoBehaviour {
 		mesh.RecalculateBounds ();
 		mesh.RecalculateNormals ();
 		collide.sharedMesh = mesh;	
-
 	}
 
 }

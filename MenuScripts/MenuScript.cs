@@ -1,4 +1,5 @@
 ﻿#if UNITY_EDITOR_WIN
+
 using UnityEngine;
 using UnityEngine.UI;
 using System;
@@ -50,7 +51,6 @@ public class MenuScript : MonoBehaviour {
 		}
 		//gameObject.SetActive(false);
 		Application.LoadLevel (1);
-
 	}
 
 	public void onHover (){
@@ -64,26 +64,11 @@ public class MenuScript : MonoBehaviour {
 
 	public void UploadSong() {
 		UnityEngine.Debug.Log ("True");
-		if (men == false){
-			mp3 = Instantiate (explorer);
-			UnityEngine.Debug.Log(mp3.GetComponent<Mp3FileFinder>().m_mp3Path);
-			up = true;
-			men = true;
-		}
+		StartCoroutine("Mus");
+
 	}
 
 	void Update(){
-		if(up == true && path == false){
-			if(!(mp3.GetComponent<Mp3FileFinder>().m_mp3Path.Equals(""))){
-				pathName = mp3.GetComponent<Mp3FileFinder>().m_mp3Path;
-				path = true;
-				UnityEngine.Debug.Log (pathName);
-
-			}
-		}
-		if(path == true && done == false){
-			StartCoroutine("Mus");
-		}
 		if (done == true) {
 			StartLevel();
 		}
@@ -91,21 +76,27 @@ public class MenuScript : MonoBehaviour {
 
 	IEnumerator Mus(){
 		samples = new float[sampleCount];
-		char[] chars = new char[3] {pathName[pathName.Length - 3], pathName[pathName.Length - 2], pathName[pathName.Length - 1]};
-	
+		System.Windows.Forms.OpenFileDialog file = new System.Windows.Forms.OpenFileDialog();
+		file.Filter = "Mp3 files (.mp3)|*.mp3";
+		file.FilterIndex = 3;
+		file.Title = "Select Song";
+		file.ShowDialog ();
+		char[] chars = new char[3] {file.FileName[file.FileName.Length - 3],
+									file.FileName[file.FileName.Length - 2], 
+									file.FileName[file.FileName.Length - 1]};
 		string ext = new string(chars);
 		
-		if(pathName[pathName.Length - 3] == "mp3"[0])
+		if(file.FileName[file.FileName.Length - 3] == "mp3"[0])
 		{
 			Directory.CreateDirectory(System.IO.Path.GetTempPath() + @"\MusicalDefense");
-
-			Mp3ToWav(pathName, System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong.wav");
+			Mp3ToWav(file.FileName, System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong.wav");
 			ext = "wav";
 		}
 		else
 		{
 			Directory.CreateDirectory(System.IO.Path.GetTempPath() + @"\MusicalDefense");
-			File.WriteAllBytes(System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong." + ext, File.ReadAllBytes(pathName));
+			File.WriteAllBytes(System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong." + ext, 
+			                   File.ReadAllBytes(file.FileName));
 		}
 	
 		WWW www = new WWW("file://" + System.IO.Path.GetTempPath() + @"\MusicalDefense\currentsong." + ext);
@@ -120,6 +111,7 @@ public class MenuScript : MonoBehaviour {
 		song = a;
 		isReady = true;
 		done = true;
+		pathName = file.FileName;
 		yield return null;
 	}
 

@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 
 public class MainManager : MonoBehaviour {
+
+	public static List<MeshRenderer> meshManager = new List<MeshRenderer> ();
 	public AudioSource source;
 	public SongGenre getGenre;
 	public static AudioClip song;
@@ -135,32 +137,37 @@ public class MainManager : MonoBehaviour {
 		while (g.done == false)
 			yield return new WaitForSeconds(.02f);
 
+		foreach (MeshRenderer mr in meshManager) {
+			mr.enabled = true;
+		}
 		yield return StartCoroutine("cloudInitializer");
 	}
 
 	IEnumerator cloudInitializer(){
 		text.text = "Setting Clouds";
+		yield return new WaitForSeconds (1.0f);
 		clouds.GetComponent<CloudsToy> ().CloudPreset = cloudScene;
-		clouds.GetComponent<CloudsToy> ().NumberClouds =  2* numClouds;
-	
+		clouds.GetComponent<CloudsToy> ().NumberClouds =  2 * numClouds;
+		Debug.Log ("Clouds");
 		clouds.GetComponent<CloudsToy> ().EditorRepaintClouds ();
 		clouds.SetActive(true);
-		yield return StartCoroutine (waterInitializer());
-
+		yield return StartCoroutine (startSong ());
 	}
 
 	IEnumerator waterInitializer(){
 		GameObject top = Instantiate (waterTop);
 		GameObject bottom = Instantiate (waterBottom);
+		text.text = "Setting Water";
+		yield return new WaitForSeconds (1.0f);
 		Vector3 curr = top.transform.position;
 		top.transform.position = new Vector3 (curr.x, waterLevel, curr.y);
 		bottom.transform.position = new Vector3 (curr.x, waterLevel, curr.y);
-		yield return StartCoroutine (startSong ());
 
 	}
 
 	IEnumerator startSong(){
 		text.text = "Making it Rain";
+		yield return new WaitForSeconds (1.0f);
 		MeshParticleEmitter e = null;
 		//rain = false;
 		GameObject rainMain = null;
@@ -171,7 +178,11 @@ public class MainManager : MonoBehaviour {
 		}
 		float avg = 0;
 		int count = 0;
+		float maxVol = 0;
 		foreach(float f in volumes){
+			if (f > maxVol){
+				maxVol = f;
+			}
 			avg += f;
 			count++;
 		}
@@ -203,8 +214,8 @@ public class MainManager : MonoBehaviour {
 
 		foreach (float f in volumes) {
 			if(rain){
-				e.minEmission = (min + (f-avg)/50);
-				e.maxEmission = (max + (f-avg)/20);
+				e.minEmission = min * (f/maxVol);
+				e.maxEmission =  max * (f/maxVol);
 			}
 			Debug.Log("Rain");
 			yield return new WaitForSeconds (sampleTime);
@@ -274,7 +285,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childRadius = new float[]{.5f,.6f};
 		TreeAndBuilding.childHeight = new float[] {1,1.5f};
 
-		TreeAndBuilding.segments = new int[]{20,6};
+		TreeAndBuilding.segments = new int[]{20,4};
 		TreeAndBuilding.segmentLength = new float[]{3.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.9f,0};
 		TreeAndBuilding.maxTurn = new float[]{10,0};
@@ -312,7 +323,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childHeight = new float[]{0,0};
 
 		TreeAndBuilding.segments = new int[]{12,3};
-		TreeAndBuilding.segmentLength = new float[]{1.0f,0};
+		TreeAndBuilding.segmentLength = new float[]{2.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.9f,0};
 		TreeAndBuilding.maxTurn = new float[]{10,0};
 		TreeAndBuilding.branchChance = new float[]{.75f,0};
@@ -327,13 +338,13 @@ public class MainManager : MonoBehaviour {
 //		maxSat = 1;
 		minVal = .8f;
 		maxVal = 1;
-		treeMax = 1;
-		treeSize = 1;
+		treeMax = 4;
+		treeSize = 4;
 		buildingMax = 2;
 		buildingSize = 4;
 		treeLeaves = false;
 		leaf_density = .8f;
-		rain = false;
+		rain = true;
 		equilibrium = 2;
 
 		TreeAndBuilding.buildingHeight = 3;
@@ -345,12 +356,12 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childRadius = new float[] {.2f,.4f};
 		TreeAndBuilding.childHeight = new float[]{.2f,.4f};
 
-		TreeAndBuilding.segments = new int[]{14,4};
-		TreeAndBuilding.segmentLength = new float[]{.75f,0};
-		TreeAndBuilding.upCurve = new float[]{.9f,0};
+		TreeAndBuilding.segments = new int[]{18,4};
+		TreeAndBuilding.segmentLength = new float[]{3.0f,0};
+		TreeAndBuilding.upCurve = new float[]{20,0};
 		TreeAndBuilding.maxTurn = new float[]{10,0};
-		TreeAndBuilding.branchChance = new float[]{.7f,0};
-		TreeAndBuilding.branchDeviation = new float[]{0,0};
+		TreeAndBuilding.branchChance = new float[]{.6f,0};
+		TreeAndBuilding.branchDeviation = new float[]{20,0};
 		TreeAndBuilding.leafDensity = new int[]{4,7};
 		clouds.GetComponent<CloudsToy> ().CloudColor = Color.white;
 		numClouds = 100;
@@ -417,7 +428,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childHeight = new float[]{0,0};
 
 		TreeAndBuilding.segments = new int[]{14,4};
-		TreeAndBuilding.segmentLength = new float[]{.75f,0};
+		TreeAndBuilding.segmentLength = new float[]{3.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.75f,.3f};
 		TreeAndBuilding.maxTurn = new float[]{10,0};
 		TreeAndBuilding.branchChance = new float[]{.7f,0};
@@ -432,8 +443,8 @@ public class MainManager : MonoBehaviour {
 //		maxSat = .4f;
 		minVal = 0;
 		maxVal = .2f;
-		treeMax = 1;
-		treeSize = 3;
+		treeMax = 3;
+		treeSize = 5;
 		buildingMax = 5;
 		buildingSize = 3;
 		treeLeaves = false;
@@ -450,7 +461,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childRadius = new float[]{0,0};
 		TreeAndBuilding.childHeight = new float[]{0,0};
 
-		TreeAndBuilding.segments = new int[]{20,4};
+		TreeAndBuilding.segments = new int[]{25,4};
 		TreeAndBuilding.segmentLength = new float[]{2.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.99f,0};
 		TreeAndBuilding.maxTurn = new float[]{10,0};
@@ -458,7 +469,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.branchDeviation = new float[]{0,0};
 		TreeAndBuilding.leafDensity = new int[]{0,0};
 		cloudScene = CloudsToy.TypePreset.Stormy;
-		numClouds = 200;
+		numClouds = 210;
 		clouds.GetComponent<CloudsToy> ().CloudColor = Color.black;
 	}
 	void Rap(){
@@ -520,7 +531,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childHeight = new float[] {0,0};
 
 		TreeAndBuilding.segments = new int[]{20,4};
-		TreeAndBuilding.segmentLength = new float[]{1.0f,0};
+		TreeAndBuilding.segmentLength = new float[]{2.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.75f,0};
 		TreeAndBuilding.maxTurn = new float[]{25,0};
 		TreeAndBuilding.branchChance = new float[]{.8f,0};
@@ -552,7 +563,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childHeight = new float[] {0,0};
 
 		TreeAndBuilding.segments = new int[]{10,3};
-		TreeAndBuilding.segmentLength = new float[]{1.0f,0};
+		TreeAndBuilding.segmentLength = new float[]{3.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.9f,0};
 		TreeAndBuilding.maxTurn = new float[]{2,0};
 		TreeAndBuilding.branchChance = new float[]{.3f,0};
@@ -587,7 +598,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childHeight = new float[] {1.5f,2f};
 
 		TreeAndBuilding.segments = new int[]{10,3};
-		TreeAndBuilding.segmentLength = new float[]{1.0f,0};
+		TreeAndBuilding.segmentLength = new float[]{2.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.6f,0};
 		TreeAndBuilding.maxTurn = new float[]{25,0};
 		TreeAndBuilding.branchChance = new float[]{.4f,0};
@@ -602,6 +613,7 @@ public class MainManager : MonoBehaviour {
 		if (pathName != null) {
 			yield return StartCoroutine (getGenre.Request(pathName));
 			genre = getGenre.genre;
+			//genre = SongGenre.Genre.Electronic;
 		}
 
 
@@ -647,11 +659,11 @@ public class MainManager : MonoBehaviour {
 				Rock ();
 				break;
 			default:
-				Ambient();
+				Electronic();
 				break;
 		
 		}	
-
+		StartCoroutine(waterInitializer());
 		yield return StartCoroutine("Generate");
 	}
 

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -89,19 +89,18 @@ public class TreeAndBuilding : MonoBehaviour {
 			t.radius = new float[]{trunk,.25f};
 			if (big) t.segments =segments;
 			else t.segments = new int[] {10,2};
-			t.segmentLength = new float[]{trunk*segmentLength[0], segmentLength[1]};
+			t.segmentLength = new float[]{trunk*segmentLength[0], 0};
 			t.upCurve = upCurve;
 			t.maxLeafPercent = .50f;
 			t.maxTurn = maxTurn;
 			t.branchChance = branchChance;
 			t.branchDeviation = branchDeviation;
-
 			l.leafAngleRange = new float[]{40f,90f};
 			l.leafDensity = leafDensity;
 			l.leafLength = new float[]{trunk / 2, trunk};
 			l.leafWidth = new float[]{trunk / 2, trunk};
 			l.leaves = leaf;
-			treeLoc.transform.position = new Vector3 (hit.point.x,hit.point.y-2,hit.point.z);
+			treeLoc.transform.position = new Vector3 (hit.point.x,hit.point.y,hit.point.z);
 		
 			//treeLoc.transform.parent = cube.transform;
 			t.Init();
@@ -140,13 +139,13 @@ public class TreeAndBuilding : MonoBehaviour {
 			cbm.maxRad = new float[] {rad + max, rad+ max*1.5f};
 			cbm.expandChance = expandChance;
 			cbm.windowHeight = windows;
-			cbm.numChildren = numChild;
+			cbm.numChildren = 0;
 			cbm.childRadiusFactor = childRadius;
 			cbm.childSegmentFactor = childHeight;
-					
+
+			buildingA.transform.position = new Vector3 (hit.point.x,hit.point.y-10,hit.point.z);
 			cbm.BuildMe();
 			buildingA.transform.parent = BuildingContainer.transform;
-			buildingA.transform.position = new Vector3 (hit.point.x,hit.point.y-10,hit.point.z);;
 			buildingA.SetActive(true);
 			//c.sharedMesh = buildingA.GetComponent<MeshFilter> ().mesh;
 		}
@@ -161,9 +160,9 @@ public class TreeAndBuilding : MonoBehaviour {
 			float x = Mathf.RoundToInt(v.x);
 			float z = Mathf.RoundToInt(v.y);
 
-			if(noises[new Vector2(x, z)] < .22f && noises[new Vector2(x, z)] >.21){
+			if(noises[new Vector2(x, z)] < .25f && noises[new Vector2(x, z)] >.20){
 				makeTrees(v,true);
-			}else if (noises[new Vector2(x, z)] < .23){
+			}else if (noises[new Vector2(x, z)] < .26){
 				makeTrees(v,false);
 			}
 
@@ -179,7 +178,7 @@ public class TreeAndBuilding : MonoBehaviour {
 			float x = Mathf.RoundToInt(v.x);
 			float z = Mathf.RoundToInt(v.y);
 			
-			if(noises[new Vector2(x, z)] <.45f &&  noises[new Vector2(x, z)] >.43f){
+			if(noises[new Vector2(x, z)] <.48f &&  noises[new Vector2(x, z)] >.43f){
 				makeBuildings(v);
 				yield return new WaitForSeconds(.01f);
 			}
