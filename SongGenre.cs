@@ -5,7 +5,7 @@ using System.IO;
 
 public class SongGenre : MonoBehaviour {
 	public enum Genre {Alternative, Rock, Trance, Reggae, Rap, Ambient, Folk, 
-		Electronic, Dubstep, House, Metal, Classical, Unknown};
+		Electronic, Dubstep, House, Metal, Classical, Pop, Unknown};
 	public Genre genre = Genre.Unknown;
 
 	public IEnumerator Request (string path) {
@@ -70,6 +70,8 @@ public class SongGenre : MonoBehaviour {
 		else if (lc.Contains ("electronic") || lc.Contains ("tech") || lc.Contains ("edm") ||
 		         lc.Contains ("dance"))
 			return Genre.Electronic;
+		else if (lc.Contains ("pop"))
+			return Genre.Pop;
 		else return Genre.Electronic;
 		Debug.Log (genre);
 	}
