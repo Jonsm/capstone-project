@@ -92,20 +92,25 @@ public class ShaderManager : MonoBehaviour {
 	void Beats () {
 		float time = Time.time - startTime;
 
-		if (currentBeat == beatsList.Count) return;
 		int pos = (int) (time / sa.sampleTime);
+		if (currentBeat == beatsList.Count || pos == sa.charPitches.Length) return;
 		float vol = Mathf.Lerp (sa.volumes [pos], sa.volumes [pos + 1],
 		                        (beatsList [currentBeat] - pos * sa.sampleTime) / sa.sampleTime);
 		float bp = Mathf.Lerp (1 - bpRange, 1 + bpRange, (vol - volume [0]) / (volume [1] - volume [0]));
 		terrain.SetFloat ("_SinePeriod", bp);
 
 		if (time > beatsList [currentBeat]) {
-			Debug.Log ("Beat");
 			currentBeat++;
 			terrain.SetFloat ("_BeatTime", startTime + beatsList [currentBeat]);
 
 			float strength = sinePower * (vol - volume [0]) / (volume [1] - volume [0]);
+			Debug.Log ("Beat " + strength);
 			terrain.SetFloat ("_BeatStrength", Mathf.Pow (strength, 2));
+
+			bool doubleTime = (vol >= (volume [1] - volume [0]) / 2);
+			float offset = building.GetFloat ("_VOffset");
+			if (doubleTime) building.SetFloat ("_VOffset", offset + .5f);
+			else if (currentBeat % 2 == 0) building.SetFloat ("_VOffset", offset + .5f);
 		}
 	}
 
@@ -179,6 +184,10 @@ public class ShaderManager : MonoBehaviour {
 		bpRange = .5f;
 		sinePower = 1;
 
+		Color color1 = Color.black;
+		Color color2 = Color.black;
+		Color color3 = Color.black;
+
 		switch (genre) {
 		case SongGenre.Genre.Alternative:
 			hRange = .35f;
@@ -197,12 +206,18 @@ public class ShaderManager : MonoBehaviour {
 			leafDifference = .2f;
 			hRange = .2f;
 			skySValue = .4f;
+			color1 = Color.white;
+			color2 = Color.black;
+			color3 = Color.white;
 			break;
 		case SongGenre.Genre.Electronic:
 			groundHSV = new Vector3 (.2f, .5f, .4f);
 			leafDifference = .2f;
 			hRange = .35f;
 			skySValue = .7f;
+			color1 = Color.red + Color.white * .2f;
+			color2 = Color.green + Color.white * .2f;
+			color3 = Color.blue + Color.white * .2f;
 			break;
 		case SongGenre.Genre.Folk:
 			groundHSV = new Vector3 (.2f, .9f, 1.1f);
@@ -226,6 +241,9 @@ public class ShaderManager : MonoBehaviour {
 			hRange = .35f;
 			skySValue = .7f;
 			sinePower = .5f;
+			color1 = Color.green;
+			color2 = Color.yellow;
+			color3 = Color.red;
 			break;
 		case SongGenre.Genre.Rock:
 			sinePower = .5f;
@@ -235,6 +253,18 @@ public class ShaderManager : MonoBehaviour {
 			skySecondaryHSV = new Vector3 (.5f, .5f, .5f);
 			hRange = .5f;
 			skySValue = 1;
+			color1 = Color.red;
+			color2 = Color.green;
+			color3 = Color.blue;
+			break;
+		case SongGenre.Genre.Pop:
+			hRange = .35f;
+			groundHSV = new Vector3 (.2f, .7f, 1.4f);
+			skySecondaryHSV = new Vector3 (.5f, .5f, .5f);
+			skySValue = .6f;
+			color1 = Color.red;
+			color2 = Color.magenta;
+			color3 = Color.blue;
 			break;
 		case SongGenre.Genre.Unknown:
 			break;
@@ -260,6 +290,15 @@ public class ShaderManager : MonoBehaviour {
 		leaves.SetColor ("_Color", leafColor);
 		fog.fog_color = mainSkyColor;
 		fog.fog_change = true;
+
+		if (color1 == Color.black) {
+			color1 = mainSkyColor;
+			color2 = secondSkyColor;
+			color3 = leafColor;
+		}
+		building.SetColor ("_RColor1", color1);
+		building.SetColor ("_RColor2", color2);
+		building.SetColor ("_RColor3", color3);
 	}
 
 	//clamps float between 0 and 1 (for color adjustment)

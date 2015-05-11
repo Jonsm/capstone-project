@@ -38,6 +38,7 @@ public class ShaderTest : MonoBehaviour {
 		source.Play ();
 		sm.Begin (genre, sa, null, fg);
 
+		foreach (MeshRenderer mr in MainManager.meshManager) mr.enabled = true;
 		yield return null;
 	}
 }
