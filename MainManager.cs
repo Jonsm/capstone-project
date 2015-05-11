@@ -10,6 +10,7 @@ public class MainManager : MonoBehaviour {
 	public static List<MeshRenderer> meshManager = new List<MeshRenderer> ();
 	public AudioSource source;
 	public SongGenre getGenre;
+	public SongID backupGenre;
 	public static AudioClip song;
 	public AudioClip debugSong;
 	public ShaderManager shaderManager;
@@ -53,14 +54,14 @@ public class MainManager : MonoBehaviour {
 	private bool caves = false;
 	private float equilibrium = 1;
 
-	private float minVol;
-	private float maxVol;
+	private float min = 0 ;
+	private float max = 15;
 
 
 
 	public GameObject waterTop;
 	public GameObject waterBottom;
-	private float waterLevel= 200;
+	private float waterLevel= .7f;
 
 	public GameObject camera;
 	public GameObject marchingCube;
@@ -85,6 +86,7 @@ public class MainManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		shaderManager.enabled = true;
 		StartCoroutine ("Spectrum");
 	}
 
@@ -118,6 +120,7 @@ public class MainManager : MonoBehaviour {
 		g.treeSize = treeSize;
 		g.buildingSize = buildingSize;
 		g.caves = caves;
+	
 		
 		//This needs to have an object prefab that has a marching cubes script sent in
 		g.object_prefab = marchingCube;
@@ -130,13 +133,12 @@ public class MainManager : MonoBehaviour {
 		//Set size to 10 
 		g.size = 10;
 		g.leaf_density = leaf_density;
-	
 		g.Begin ();
 		//Set if the terrain turns to cave or flat and where it happens within the range next
 		//mod 1 is in x direction mod 2 is z mod 3 is x as well
 		while (g.done == false)
 			yield return new WaitForSeconds(.02f);
-
+		
 		foreach (MeshRenderer mr in meshManager) {
 			mr.enabled = true;
 		}
@@ -156,12 +158,16 @@ public class MainManager : MonoBehaviour {
 
 	IEnumerator waterInitializer(){
 		GameObject top = Instantiate (waterTop);
-		GameObject bottom = Instantiate (waterBottom);
+		//GameObject bottom = Instantiate (waterBottom);
 		text.text = "Setting Water";
 		yield return new WaitForSeconds (1.0f);
-		Vector3 curr = top.transform.position;
-		top.transform.position = new Vector3 (curr.x, waterLevel, curr.y);
-		bottom.transform.position = new Vector3 (curr.x, waterLevel, curr.y);
+		//Vector3 curr = top.transform.position;
+		float cube_size = CubeGenerator.GetComponent<CubeManager> ().cubeSize;		
+		waterLevel = (max - min)*cube_size* waterLevel;
+		top.transform.localScale = new Vector3 (4000, 1, 4000);
+
+		top.transform.position = new Vector3 (500, waterLevel, 500);
+		//bottom.transform.position = new Vector3 (curr.x, waterLevel, curr.y);
 
 	}
 
@@ -199,7 +205,7 @@ public class MainManager : MonoBehaviour {
 		cam.GetComponent<UnderWater> ().water_level = waterLevel;
 		Vector3 down = transform.TransformDirection(Vector3.down);
 		RaycastHit hit;
-		Physics.Raycast(new Vector3(0,500f,0),down,out hit);
+		Physics.Raycast(new Vector3(500,500f,500),down,out hit);
 		cam.transform.position = new Vector3 (hit.point.x, hit.point.y + 5, hit.point.z);
 		text.text = "Setting Fog";
 		FogControl fg = cam.GetComponent<FogControl> () as FogControl;
@@ -207,25 +213,48 @@ public class MainManager : MonoBehaviour {
 		source = p.AddComponent<AudioSource> ();
 		source.clip = song;
 		p.SetActive (true);
+
+		float songTime = source.clip.length;
+		float timerStart = Time.time;
+		float currTime = Time.time;
 		source.Play ();
 		shaderManager.Begin (genre, sa, rainMain, fg);
 		text.text = "";
 		yield return new WaitForSeconds (sampleTime / 2);
 
-		foreach (float f in volumes) {
+		foreach (float f in volumes ) {
 			if(rain){
 				e.minEmission = min * (f/maxVol);
 				e.maxEmission =  max * (f/maxVol);
 			}
+			currTime = Time.time;
+			if(currTime - timerStart >= songTime- 10){
+				Debug.Log ("TIME");
+				break;
+			}
+
 			Debug.Log("Rain");
 			yield return new WaitForSeconds (sampleTime);
 		}	
+		Debug.Log ("HERE");
+		float dens = RenderSettings.fogDensity;
+		shaderManager.enabled = false;
+		cam.GetComponent<FogControl> ().fog_color= Color.white;
+		while (Time.time - timerStart <= songTime-2) {
+			RenderSettings.fogColor = Color.white;
+			dens *= 1.1f;
+			cam.GetComponent<FogControl>().fog_density = dens;
+			RenderSettings.fogDensity = dens;
+			yield return new WaitForSeconds(.01f);
+		}
+
+		Application.LoadLevel (0);
 		yield return null;
 	}
 
 
 	void Alternative(){
-		//hueRange = 90;
+		//hueRange = 90
 		//minSat = .3f;
 		//maxSat = .7f;
 		minVal = .5f;
@@ -470,6 +499,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.leafDensity = new int[]{0,0};
 		cloudScene = CloudsToy.TypePreset.Stormy;
 		numClouds = 210;
+		waterLevel = .7f;
 		clouds.GetComponent<CloudsToy> ().CloudColor = Color.black;
 	}
 	void Rap(){
@@ -487,6 +517,7 @@ public class MainManager : MonoBehaviour {
 		leaf_density = 0;
 		rain = false;
 		equilibrium = 1;
+		waterLevel = .8f;
 
 		TreeAndBuilding.buildingHeight = 3;
 		TreeAndBuilding.expandChance = .05f;
@@ -530,7 +561,7 @@ public class MainManager : MonoBehaviour {
 		TreeAndBuilding.childRadius = new float[]{0,0};
 		TreeAndBuilding.childHeight = new float[] {0,0};
 
-		TreeAndBuilding.segments = new int[]{20,4};
+		TreeAndBuilding.segments = new int[]{20,6};
 		TreeAndBuilding.segmentLength = new float[]{2.0f,0};
 		TreeAndBuilding.upCurve = new float[]{.75f,0};
 		TreeAndBuilding.maxTurn = new float[]{25,0};
@@ -613,9 +644,13 @@ public class MainManager : MonoBehaviour {
 		if (pathName != null) {
 			yield return StartCoroutine (getGenre.Request(pathName));
 			genre = getGenre.genre;
-			//genre = SongGenre.Genre.Electronic;
 		}
 
+		if (genre == SongGenre.Genre.Unknown) {
+			Debug.Log ("backup");
+			yield return StartCoroutine(backupGenre.Request(pathName));
+			genre = backupGenre.genre;
+		}
 
 		switch (genre)
 		{

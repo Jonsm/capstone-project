@@ -6,9 +6,9 @@ using System.Threading;
 public class GrassScript : MonoBehaviour {
 	//NOTE: more clumped grass is not denser in this model. It actually generates the same density, which means less grass overall.
 	public static float grassHeight = 4f;
-	public static float grassDensity = 2500; //how many times to check perlin noise values
+	public static float grassDensity = 2000; //how many times to check perlin noise values
 	public static float grassClumping = .15f; //lower is more clumped, 1 is uniformly distributed
-	static int additionalGrasses = 7; //number of grasses to randomly place around the initial grass piece
+	static int additionalGrasses = 20; //number of grasses to randomly place around the initial grass piece
 	static float radius = 4; //radius aroudn the initial grass to place them
 	static float grassWidth = 4f;
 

@@ -70,7 +70,7 @@ public class SongGenre : MonoBehaviour {
 		else if (lc.Contains ("electronic") || lc.Contains ("tech") || lc.Contains ("edm") ||
 		         lc.Contains ("dance"))
 			return Genre.Electronic;
-		else return Genre.Electronic;
+		else return Genre.Unknown;
 		Debug.Log (genre);
 	}
 

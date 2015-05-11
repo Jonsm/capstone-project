@@ -38,7 +38,7 @@ public class CubeManager : MonoBehaviour {
 	private CubeThreader a;
 	public bool smoothShade;
 	public GameObject object_prefab;
-	private Hashtable cubes = new Hashtable();
+	public Hashtable cubes = new Hashtable();
 	// Use this for initialization
 	public void Begin() {
 		TreeBuilder = Instantiate(TreeBuilding);
@@ -89,6 +89,7 @@ public class CubeManager : MonoBehaviour {
 	IEnumerator cube_Gen(Vector2 posit){
 		while (!(bool)(a.generated[posit])) yield return new WaitForSeconds (.1f);
 		GameObject cube = Instantiate(object_prefab);
+	
 		List<int> tris = new List<int> ();
 		List<Vector3> vert = new List<Vector3> ();
 		tris = (List<int>)a.triangle[posit];

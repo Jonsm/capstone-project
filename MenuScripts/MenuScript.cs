@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR_WIN
+﻿#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -54,7 +54,6 @@ public class MenuScript : MonoBehaviour {
 	}
 
 	public void onHover (){
-
 		hover.enabled = true;
 	}
 	public void offHover(){
